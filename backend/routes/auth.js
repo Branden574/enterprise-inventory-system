@@ -255,4 +255,41 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
+// TEMPORARY: Password reset for test user
+router.post('/reset-test-user', async (req, res) => {
+  try {
+    console.log('Password reset request for test user');
+    
+    // Find the test user
+    const user = await User.findOne({ username: 'branden615' });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    console.log('Found user:', { username: user.username, role: user.role });
+    
+    // Set a known password
+    const newPassword = 'test123456789!';
+    
+    // Update the password using the model's save method to trigger hashing
+    user.password = newPassword;
+    await user.save();
+    
+    console.log('Password reset successfully');
+    
+    // Test the new password immediately
+    const testMatch = await user.comparePassword(newPassword);
+    
+    res.json({ 
+      success: true, 
+      message: 'Password reset to: test123456789!',
+      testResult: testMatch ? 'Password test PASSED' : 'Password test FAILED'
+    });
+    
+  } catch (error) {
+    console.error('Password reset error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
