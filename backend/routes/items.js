@@ -7,28 +7,15 @@ const Item = require('../models/Item');
 const { authenticateToken } = require('../middleware/auth');
 const AuditLog = require('../models/AuditLog');
 
-// Configure Cloudinary storage with Railway-friendly settings
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'inventory-items',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'],
-    public_id: (req, file) => {
-      const timestamp = Date.now();
-      const random = Math.round(Math.random() * 1E9);
-      return `item-${timestamp}-${random}`;
-    },
-    transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }],
-    resource_type: 'auto'
-  }
-});
+// Configure memory storage instead of direct Cloudinary storage to avoid Railway signature issues
+const memoryStorage = multer.memoryStorage();
 
 const upload = multer({ 
-  storage: storage,
+  storage: memoryStorage, // Store in memory first, then upload to Cloudinary manually
   limits: {
-    fileSize: 5 * 1024 * 1024, // Reduce to 5MB for Railway
-    fieldSize: 5 * 1024 * 1024,
-    parts: 20 // Limit form parts
+    fileSize: 5 * 1024 * 1024, // 5MB limit for Railway
+    fieldSize: 1 * 1024 * 1024, // 1MB field limit
+    parts: 10 // Limit form parts
   },
   fileFilter: (req, file, cb) => {
     console.log('🔍 File filter check:', {
@@ -372,10 +359,9 @@ async function handleItemCreation(req, res) {
     
     if (req.file) {
       console.log('📸 File details:', {
-        path: req.file.path,
-        filename: req.file.filename,
-        size: req.file.size,
-        mimetype: req.file.mimetype
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
       });
     }
 
@@ -386,7 +372,9 @@ async function handleItemCreation(req, res) {
       quantity,
       lowStockThreshold,
       barcode,
-      customFields
+      customFields,
+      location,
+      notes
     } = req.body;
 
     // Validate required fields
@@ -410,21 +398,61 @@ async function handleItemCreation(req, res) {
     const itemData = {
       name,
       description,
-      category: category || undefined, // Don't set empty strings
+      category: category || undefined,
       quantity: parseInt(quantity) || 0,
       lowStockThreshold: parseInt(lowStockThreshold) || 5,
       barcode,
+      location,
+      notes,
       customFields: parsedCustomFields
     };
 
-    // Add Cloudinary photo data if uploaded
+    // Handle Cloudinary upload manually if there's a file
     if (req.file) {
-      itemData.photo = req.file.path; // Cloudinary URL
-      itemData.photoPublicId = req.file.filename; // Cloudinary public ID
-      console.log('📸 Adding photo data to item:', {
-        photo: itemData.photo,
-        photoPublicId: itemData.photoPublicId
-      });
+      try {
+        console.log('📤 Uploading to Cloudinary manually...');
+        
+        const uploadResult = await new Promise((resolve, reject) => {
+          const timestamp = Date.now();
+          const random = Math.round(Math.random() * 1E9);
+          const publicId = `item-${timestamp}-${random}`;
+          
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder: 'inventory-items',
+              public_id: publicId,
+              resource_type: 'auto',
+              transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }]
+            },
+            (error, result) => {
+              if (error) {
+                console.error('❌ Cloudinary upload error:', error);
+                reject(error);
+              } else {
+                console.log('✅ Cloudinary upload successful:', result.public_id);
+                resolve(result);
+              }
+            }
+          );
+          
+          uploadStream.end(req.file.buffer);
+        });
+        
+        itemData.photo = uploadResult.secure_url; // Cloudinary URL
+        itemData.photoPublicId = uploadResult.public_id; // Cloudinary public ID
+        
+        console.log('📸 Photo data added:', {
+          photo: itemData.photo,
+          photoPublicId: itemData.photoPublicId
+        });
+        
+      } catch (uploadError) {
+        console.error('❌ Failed to upload image to Cloudinary:', uploadError);
+        return res.status(500).json({ 
+          error: 'Failed to upload image', 
+          details: uploadError.message 
+        });
+      }
     }
 
     console.log('💾 Saving item to database...');
@@ -447,10 +475,10 @@ async function handleItemCreation(req, res) {
     console.error('❌ Error creating item:', error);
     console.error('❌ Error stack:', error.stack);
     
-    // Clean up uploaded image if item creation failed
-    if (req.file && req.file.filename) {
+    // Clean up uploaded image if item creation failed and we have a photo URL
+    if (req.file && error.photoPublicId) {
       try {
-        await cloudinary.uploader.destroy(req.file.filename);
+        await cloudinary.uploader.destroy(error.photoPublicId);
         console.log('🗑️ Cleaned up uploaded image after error');
       } catch (cleanupError) {
         console.error('Failed to clean up uploaded image:', cleanupError);
