@@ -6,7 +6,8 @@ const ItemSchema = new mongoose.Schema({
   location: { type: String, trim: true },
   notes: { type: String, trim: true },
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', index: true },
-  photo: { type: String }, // file path or URL
+  photo: { type: String }, // Cloudinary URL
+  photoPublicId: { type: String }, // Cloudinary public ID for deletion
   customFields: { type: Object, default: {} }, // dynamic custom fields
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
   createdAt: { type: Date, default: Date.now },

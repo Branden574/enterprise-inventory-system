@@ -467,7 +467,7 @@ function Items() {
               <Card sx={{ boxShadow: 4, borderRadius: 3, transition: '0.2s', '&:hover': { boxShadow: 8, transform: 'translateY(-4px) scale(1.03)' } }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    {item.photo && <img src={`https://enterprise-inventory-system-production.up.railway.app/api/items/image/${item.photo}`} alt={item.name} style={{ maxWidth: 160, maxHeight: 120, borderRadius: 8, marginBottom: 8 }} />}
+                    {item.photo && <img src={item.photo} alt={item.name} style={{ maxWidth: 160, maxHeight: 120, borderRadius: 8, marginBottom: 8 }} />}
                     <Typography variant="h6" sx={{ fontWeight: 600 }}>{item.name}</Typography>
                     <Typography color="text.secondary">Qty: {item.quantity}</Typography>
                     <Typography color="text.secondary">Location: {item.location}</Typography>
