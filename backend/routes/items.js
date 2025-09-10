@@ -185,11 +185,11 @@ router.post('/test-cloudinary-upload', authenticateToken, (req, res) => {
           size: req.file.size
         });
         
-        // Try to upload to Cloudinary manually
+        // Try the simplest possible upload to Cloudinary
         const uploadResult = await new Promise((resolve, reject) => {
           const uploadStream = cloudinary.uploader.upload_stream(
             {
-              folder: 'inventory-test',
+              // Minimal parameters - just upload the file
               resource_type: 'auto'
             },
             (error, result) => {
@@ -411,18 +411,24 @@ async function handleItemCreation(req, res) {
     if (req.file) {
       try {
         console.log('📤 Uploading to Cloudinary manually...');
+        console.log('🔑 Cloudinary config check:', {
+          cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
+          api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING',
+          api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING'
+        });
         
         const uploadResult = await new Promise((resolve, reject) => {
-          const timestamp = Date.now();
+          const timestamp = Math.floor(Date.now() / 1000); // Use seconds, not milliseconds
           const random = Math.round(Math.random() * 1E9);
           const publicId = `item-${timestamp}-${random}`;
           
+          // Simplified upload without transformations to avoid signature issues
           const uploadStream = cloudinary.uploader.upload_stream(
             {
               folder: 'inventory-items',
               public_id: publicId,
-              resource_type: 'auto',
-              transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }]
+              resource_type: 'auto'
+              // Removed transformations to simplify signature
             },
             (error, result) => {
               if (error) {
@@ -756,21 +762,41 @@ router.get('/test-cloudinary-config', authenticateToken, async (req, res) => {
       api_key: config.api_key ? 'SET' : 'MISSING',
       api_secret: config.api_secret ? 'SET' : 'MISSING'
     });
-    
-    // Test Cloudinary API connection
-    const cloudinaryTest = await cloudinary.api.ping();
-    console.log('🧪 Cloudinary ping successful:', cloudinaryTest);
-    
-    res.json({
-      success: true,
-      message: 'Cloudinary configuration is working',
-      config: {
-        cloud_name: config.cloud_name ? 'SET' : 'MISSING',
-        api_key: config.api_key ? 'SET' : 'MISSING',
-        api_secret: config.api_secret ? 'SET' : 'MISSING'
-      },
-      ping: cloudinaryTest
+
+    console.log('🧪 Actual values (first 5 chars):', {
+      cloud_name: config.cloud_name ? config.cloud_name.substring(0, 5) + '...' : 'MISSING',
+      api_key: config.api_key ? config.api_key.substring(0, 5) + '...' : 'MISSING',
+      api_secret: config.api_secret ? config.api_secret.substring(0, 5) + '...' : 'MISSING'
     });
+    
+    // Test Cloudinary API connection with basic ping
+    try {
+      const cloudinaryTest = await cloudinary.api.ping();
+      console.log('🧪 Cloudinary ping successful:', cloudinaryTest);
+      
+      res.json({
+        success: true,
+        message: 'Cloudinary configuration is working',
+        config: {
+          cloud_name: config.cloud_name ? 'SET' : 'MISSING',
+          api_key: config.api_key ? 'SET' : 'MISSING',
+          api_secret: config.api_secret ? 'SET' : 'MISSING'
+        },
+        ping: cloudinaryTest
+      });
+    } catch (pingError) {
+      console.error('🧪 Cloudinary ping failed:', pingError);
+      res.status(500).json({
+        success: false,
+        message: 'Cloudinary ping failed',
+        error: pingError.message,
+        config: {
+          cloud_name: config.cloud_name ? 'SET' : 'MISSING',
+          api_key: config.api_key ? 'SET' : 'MISSING',
+          api_secret: config.api_secret ? 'SET' : 'MISSING'
+        }
+      });
+    }
     
   } catch (error) {
     console.error('🧪 Cloudinary test failed:', error);
