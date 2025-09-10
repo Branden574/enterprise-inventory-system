@@ -88,3 +88,6 @@ temp/
 # Parent directory files (exclude everything outside this project)
 ../
 ../../*
+
+# Local Netlify folder
+.netlify

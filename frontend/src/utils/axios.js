@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: 'http://localhost:5000',
+  baseURL: 'https://enterprise-inventory-system-production.up.railway.app',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'

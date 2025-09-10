@@ -26,7 +26,7 @@ function Register({ onSwitch }) {
       return;
     }
     try {
-      await axios.post('http://localhost:5000/api/auth/register', form);
+      await axios.post('https://enterprise-inventory-system-production.up.railway.app/api/auth/register', form);
       setSuccess('Account created! You can now log in.');
       setForm({ username: '', password: '', email: '', firstName: '', lastName: '' });
     } catch (err) {

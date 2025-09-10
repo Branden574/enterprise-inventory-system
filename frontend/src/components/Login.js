@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Button, TextField, Typography, Box, Alert, FormControlLabel, Checkbox, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 
 // Configure axios to use the backend URL
-axios.defaults.baseURL = 'http://localhost:5000';
+axios.defaults.baseURL = 'https://enterprise-inventory-system-production.up.railway.app';
 
 
 function Login({ onSwitch, onLogin }) {
