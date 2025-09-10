@@ -289,7 +289,7 @@ router.get('/reset-test-user', async (req, res) => {
     // Find the test user
     const user = await User.findOne({ username: 'branden615' });
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'User branden615 not found' });
     }
     
     console.log('Found user:', { username: user.username, role: user.role });
@@ -320,6 +320,60 @@ router.get('/reset-test-user', async (req, res) => {
   } catch (error) {
     console.error('Password reset error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// TEMPORARY: Test creating a new user the same way as public registration
+router.get('/test-user-creation', async (req, res) => {
+  try {
+    console.log('=== TEST USER CREATION ===');
+    
+    const testUsername = 'testuser' + Date.now();
+    
+    // Delete existing test user if exists
+    await User.deleteOne({ username: testUsername });
+    
+    console.log('Creating test user:', testUsername);
+    
+    // Create user the same way as public registration
+    const userData = {
+      username: testUsername,
+      email: 'test@test.com',
+      password: 'test123456789!',
+      firstName: 'Test',
+      lastName: 'User',
+      role: 'user',
+      requirePasswordChange: false
+    };
+
+    const user = new User(userData);
+    await user.save();
+    
+    console.log('✅ Test user created successfully');
+    
+    // Test the password immediately
+    const testMatch = await user.comparePassword('test123456789!');
+    
+    // Also test direct bcrypt
+    const bcrypt = require('bcryptjs');
+    const directMatch = await bcrypt.compare('test123456789!', user.password);
+    
+    const result = { 
+      success: true, 
+      username: testUsername,
+      message: 'Test user created with password: test123456789!',
+      modelTestResult: testMatch ? 'Model test PASSED' : 'Model test FAILED',
+      directTestResult: directMatch ? 'Direct bcrypt test PASSED' : 'Direct bcrypt test FAILED',
+      hashedPassword: user.password
+    };
+    
+    console.log('Creation result:', result);
+    
+    res.json(result);
+    
+  } catch (error) {
+    console.error('User creation error:', error);
+    res.status(500).json({ error: error.message, stack: error.stack });
   }
 });
 
