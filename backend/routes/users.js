@@ -101,4 +101,39 @@ router.put('/:id/role', authenticateToken, isAdminOrSuperAdmin, async (req, res)
   }
 });
 
+// Reset user password (admin only)
+router.put('/:id/reset-password', authenticateToken, isAdminOrSuperAdmin, async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    
+    // Validate password
+    if (!newPassword || newPassword.length < 10) {
+      return res.status(400).json({ error: 'Password must be at least 10 characters long' });
+    }
+
+    // Get the user
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update password and require password change
+    user.password = newPassword;
+    user.requirePasswordChange = true;
+    await user.save();
+
+    // Log password reset
+    await auditLogger.logUserChange('UPDATE', user, req.user, 
+      { passwordReset: true }, { passwordReset: false }, req);
+
+    res.json({ 
+      message: 'Password reset successfully', 
+      requirePasswordChange: user.requirePasswordChange 
+    });
+  } catch (err) {
+    console.error('Password reset error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

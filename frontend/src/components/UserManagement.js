@@ -20,9 +20,11 @@ import {
   Alert,
   IconButton,
   TextField,
+  Chip,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import LockResetIcon from '@mui/icons-material/LockReset';
 
 function UserManagement({ token }) {
   const [users, setUsers] = useState([]);
@@ -45,6 +47,10 @@ function UserManagement({ token }) {
   }, []);
   const [editUser, setEditUser] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [passwordResetDialog, setPasswordResetDialog] = useState(false);
+  const [resetUserId, setResetUserId] = useState(null);
+  const [resetUserName, setResetUserName] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'admin' });
   const [isCreatingNew, setIsCreatingNew] = useState(false);
 
@@ -83,6 +89,33 @@ function UserManagement({ token }) {
       } catch (err) {
         setError('Failed to delete user. ' + (err.response?.data?.error || err.message));
       }
+    }
+  };
+
+  const handlePasswordResetOpen = (user) => {
+    setResetUserId(user._id);
+    setResetUserName(user.username);
+    setNewPassword('');
+    setPasswordResetDialog(true);
+  };
+
+  const handlePasswordReset = async () => {
+    try {
+      if (!newPassword || newPassword.length < 10) {
+        setError('Password must be at least 10 characters long');
+        return;
+      }
+
+      await axios.put(`/api/users/${resetUserId}/reset-password`, { 
+        newPassword: newPassword 
+      });
+      
+      setSuccess(`Password reset successfully for ${resetUserName}. User will be required to change password on next login.`);
+      setPasswordResetDialog(false);
+      setNewPassword('');
+      fetchUsers();
+    } catch (err) {
+      setError('Failed to reset password. ' + (err.response?.data?.error || err.message));
     }
   };
 
@@ -196,6 +229,7 @@ function UserManagement({ token }) {
               <TableCell>Username</TableCell>
               <TableCell>Email</TableCell>
               <TableCell>Role</TableCell>
+              <TableCell>Status</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -203,25 +237,43 @@ function UserManagement({ token }) {
             {users.map((user) => (
               <TableRow key={user._id}>
                 <TableCell>{user.username}</TableCell>
-                <TableCell>{user.email}</TableCell>
+                <TableCell>{user.email || 'N/A'}</TableCell>
                 <TableCell>
                   <Select
                     value={user.role}
                     onChange={(e) => handleRoleChange(user._id, e.target.value)}
                     size="small"
+                    disabled={user.role === 'superadmin'}
                   >
                     <MenuItem value="user">User</MenuItem>
                     <MenuItem value="staff">Staff</MenuItem>
                     <MenuItem value="admin">Admin</MenuItem>
+                    {user.role === 'superadmin' && <MenuItem value="superadmin">Super Admin</MenuItem>}
                   </Select>
                 </TableCell>
                 <TableCell>
-                  <IconButton onClick={() => handleEditOpen(user)} color="primary">
+                  {user.requirePasswordChange ? (
+                    <Chip label="Must Change Password" color="warning" size="small" />
+                  ) : (
+                    <Chip label="Active" color="success" size="small" />
+                  )}
+                </TableCell>
+                <TableCell>
+                  <IconButton onClick={() => handleEditOpen(user)} color="primary" title="Edit User">
                     <EditIcon />
                   </IconButton>
-                  <IconButton onClick={() => handleDeleteUser(user._id)} color="error">
-                    <DeleteIcon />
+                  <IconButton 
+                    onClick={() => handlePasswordResetOpen(user)} 
+                    color="secondary" 
+                    title="Reset Password"
+                  >
+                    <LockResetIcon />
                   </IconButton>
+                  {user.role !== 'superadmin' && (
+                    <IconButton onClick={() => handleDeleteUser(user._id)} color="error" title="Delete User">
+                      <DeleteIcon />
+                    </IconButton>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -284,6 +336,39 @@ function UserManagement({ token }) {
             variant="contained"
           >
             {editUser ? 'Save Changes' : 'Create Admin'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={passwordResetDialog} onClose={() => setPasswordResetDialog(false)}>
+        <DialogTitle>Reset Password for {resetUserName}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+              Enter a new password for this user. They will be required to change it on their next login.
+            </Typography>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="New Password"
+              type="password"
+              fullWidth
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              helperText="Minimum 10 characters required"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPasswordResetDialog(false)}>Cancel</Button>
+          <Button 
+            onClick={handlePasswordReset} 
+            color="primary" 
+            variant="contained"
+            disabled={!newPassword || newPassword.length < 10}
+          >
+            Reset Password
           </Button>
         </DialogActions>
       </Dialog>
