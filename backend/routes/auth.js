@@ -127,23 +127,48 @@ router.post('/register-admin', authenticateToken, async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
   try {
-    console.log('Login attempt for username:', req.body.username);
+    console.log('=== LOGIN ATTEMPT ===');
+    console.log('Username:', req.body.username);
+    console.log('Password length:', req.body.password ? req.body.password.length : 'undefined');
+    console.log('Request body keys:', Object.keys(req.body));
+    
     const user = await User.findOne({ username: req.body.username });
     if (!user) {
-      console.log('User not found');
+      console.log('❌ User not found in database');
       return res.status(400).json({ error: 'Invalid credentials' });
     }
-    console.log('User found in database:', {
+    
+    console.log('✅ User found in database:', {
       username: user.username,
       requirePasswordChange: user.requirePasswordChange,
-      role: user.role
+      role: user.role,
+      hashedPasswordLength: user.password ? user.password.length : 'undefined'
     });
-    const isMatch = await user.comparePassword(req.body.password);
-    if (!isMatch) {
-      console.log('Password does not match');
+    
+    // Test password comparison with detailed logging
+    console.log('🔐 Testing password comparison...');
+    const bcrypt = require('bcryptjs');
+    
+    // Direct bcrypt test
+    const directMatch = await bcrypt.compare(req.body.password, user.password);
+    console.log('Direct bcrypt compare result:', directMatch);
+    
+    // Model method test
+    const modelMatch = await user.comparePassword(req.body.password);
+    console.log('Model comparePassword result:', modelMatch);
+    
+    if (!modelMatch) {
+      console.log('❌ Password does not match');
+      // Let's also test a few common variations
+      const testPasswords = ['test123456789!', req.body.password.trim()];
+      for (const testPwd of testPasswords) {
+        const testResult = await bcrypt.compare(testPwd, user.password);
+        console.log(`Test password "${testPwd}": ${testResult}`);
+      }
       return res.status(400).json({ error: 'Invalid credentials' });
     }
-    console.log('Password matched');
+    
+    console.log('✅ Password matched!');
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
     
     // Log successful login
@@ -157,6 +182,7 @@ router.post('/login', async (req, res) => {
     console.log('Sending response:', response);
     res.json(response);
   } catch (err) {
+    console.error('Login error:', err);
     res.status(400).json({ error: err.message });
   }
 });
@@ -251,6 +277,48 @@ router.get('/me', authenticateToken, async (req, res) => {
     const user = await User.findById(req.user.id).select('-password');
     res.json(user);
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// TEMPORARY: Password reset for test user (accessible via browser)
+router.get('/reset-test-user', async (req, res) => {
+  try {
+    console.log('=== PASSWORD RESET REQUEST ===');
+    
+    // Find the test user
+    const user = await User.findOne({ username: 'branden615' });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    console.log('Found user:', { username: user.username, role: user.role });
+    
+    // Set a known password
+    const newPassword = 'test123456789!';
+    
+    // Update the password using the model's save method to trigger hashing
+    user.password = newPassword;
+    await user.save();
+    
+    console.log('✅ Password reset successfully');
+    
+    // Test the new password immediately
+    const testMatch = await user.comparePassword(newPassword);
+    
+    const result = { 
+      success: true, 
+      message: 'Password reset to: test123456789!',
+      testResult: testMatch ? 'Password test PASSED' : 'Password test FAILED',
+      username: user.username
+    };
+    
+    console.log('Reset result:', result);
+    
+    res.json(result);
+    
+  } catch (error) {
+    console.error('Password reset error:', error);
     res.status(500).json({ error: error.message });
   }
 });
