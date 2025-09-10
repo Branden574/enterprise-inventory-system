@@ -179,13 +179,31 @@ function Items() {
     }
 
     const data = new FormData();
+    
+    // Log all form data being sent
+    console.log('📋 Form data being prepared:', {
+      name: form.name,
+      quantity: form.quantity,
+      location: form.location,
+      category: form.category,
+      photo: form.photo ? form.photo.name : 'none'
+    });
+
     Object.entries(form).forEach(([key, value]) => {
       if (key === 'customFields') {
         data.append('customFields', JSON.stringify(value));
-      } else if (value) {
+        console.log('📋 Added customFields:', JSON.stringify(value));
+      } else if (value !== null && value !== undefined && value !== '') {
         data.append(key, value);
+        console.log(`📋 Added ${key}:`, typeof value === 'object' ? value.name || '[File]' : value);
       }
     });
+
+    // Log FormData contents
+    console.log('📋 FormData entries:');
+    for (let pair of data.entries()) {
+      console.log(`  ${pair[0]}:`, pair[1]);
+    }
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (!token) {

@@ -12,26 +12,39 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'inventory-items',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'],
     public_id: (req, file) => {
       const timestamp = Date.now();
       const random = Math.round(Math.random() * 1E9);
       return `item-${timestamp}-${random}`;
     },
+    transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }]
   }
 });
 
 const upload = multer({ 
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fieldSize: 10 * 1024 * 1024 // 10MB field limit
   },
   fileFilter: (req, file, cb) => {
+    console.log('🔍 File filter check:', {
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size
+    });
+    
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed'), false);
+      console.error('❌ File rejected - not an image:', file.mimetype);
+      cb(new Error(`Only image files are allowed. Received: ${file.mimetype}`), false);
     }
+  },
+  onError: (err, next) => {
+    console.error('❌ Multer error:', err);
+    next(err);
   }
 });
 
@@ -158,14 +171,43 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // POST new item with Cloudinary image upload
-router.post('/', authenticateToken, upload.single('photo'), async (req, res) => {
+router.post('/', authenticateToken, (req, res, next) => {
+  console.log('🚀 Starting item creation request...');
+  console.log('📋 Request headers:', {
+    'content-type': req.headers['content-type'],
+    'content-length': req.headers['content-length']
+  });
+  
+  upload.single('photo')(req, res, (err) => {
+    if (err) {
+      console.error('❌ Multer error:', err);
+      return res.status(400).json({ 
+        error: 'File upload error', 
+        details: err.message,
+        type: 'MULTER_ERROR'
+      });
+    }
+    
+    // Continue to the actual handler
+    handleItemCreation(req, res);
+  });
+});
+
+async function handleItemCreation(req, res) {
   try {
     console.log('📸 Creating item with file:', req.file ? 'YES' : 'NO');
+    console.log('📋 Form data received:', {
+      name: req.body.name,
+      quantity: req.body.quantity,
+      location: req.body.location
+    });
+    
     if (req.file) {
       console.log('📸 File details:', {
         path: req.file.path,
         filename: req.file.filename,
-        size: req.file.size
+        size: req.file.size,
+        mimetype: req.file.mimetype
       });
     }
 
@@ -179,6 +221,11 @@ router.post('/', authenticateToken, upload.single('photo'), async (req, res) => 
       customFields
     } = req.body;
 
+    // Validate required fields
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
     // Parse customFields if it's a string
     let parsedCustomFields = {};
     if (customFields) {
@@ -188,13 +235,14 @@ router.post('/', authenticateToken, upload.single('photo'), async (req, res) => 
           : customFields;
       } catch (e) {
         console.error('Error parsing customFields:', e);
+        return res.status(400).json({ error: 'Invalid custom fields format' });
       }
     }
 
     const itemData = {
       name,
       description,
-      category,
+      category: category || undefined, // Don't set empty strings
       quantity: parseInt(quantity) || 0,
       lowStockThreshold: parseInt(lowStockThreshold) || 5,
       barcode,
@@ -211,9 +259,11 @@ router.post('/', authenticateToken, upload.single('photo'), async (req, res) => 
       });
     }
 
+    console.log('💾 Saving item to database...');
     const item = new Item(itemData);
     await item.save();
     
+    console.log('✅ Item saved successfully with ID:', item._id);
     console.log('✅ Item saved with photo:', item.photo);
 
     // Create audit log
@@ -226,20 +276,26 @@ router.post('/', authenticateToken, upload.single('photo'), async (req, res) => 
 
     res.status(201).json(item);
   } catch (error) {
-    console.error('Error creating item:', error);
+    console.error('❌ Error creating item:', error);
+    console.error('❌ Error stack:', error.stack);
     
     // Clean up uploaded image if item creation failed
     if (req.file && req.file.filename) {
       try {
         await cloudinary.uploader.destroy(req.file.filename);
+        console.log('🗑️ Cleaned up uploaded image after error');
       } catch (cleanupError) {
         console.error('Failed to clean up uploaded image:', cleanupError);
       }
     }
     
-    res.status(500).json({ error: 'Failed to create item' });
+    res.status(500).json({ 
+      error: 'Failed to create item', 
+      details: error.message,
+      type: 'CREATE_ERROR'
+    });
   }
-});
+}
 
 // PUT update item with optional image upload
 router.put('/:id', authenticateToken, upload.single('photo'), async (req, res) => {
@@ -485,6 +541,17 @@ router.post('/test-cloudinary', authenticateToken, upload.single('photo'), async
       error: error.message
     });
   }
+});
+
+// Test endpoint to verify server is working
+router.get('/test-server', (req, res) => {
+  res.json({ 
+    message: 'Server is working!', 
+    timestamp: new Date().toISOString(),
+    cloudinary: {
+      configured: !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET)
+    }
+  });
 });
 
 module.exports = router;
