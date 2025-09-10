@@ -231,6 +231,8 @@ console.log('Loading notifications routes...');
 const notificationsRoutes = require('./routes/notifications');
 console.log('Loading audit logs routes...');
 const auditLogsRoutes = require('./routes/auditLogs');
+console.log('Loading debug routes...');
+const debugRoutes = require('./routes/debug');
 
 // Apply routes
 app.use('/api/items', itemsRoutes);
@@ -244,6 +246,7 @@ app.use('/api/completed-pos', completedPOsRoutes);
 app.use('/api/internal-orders', internalOrdersRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/audit-logs', auditLogsRoutes);
+app.use('/api/debug', debugRoutes);
 
 // Global error handling middleware
 app.use((err, req, res, next) => {
