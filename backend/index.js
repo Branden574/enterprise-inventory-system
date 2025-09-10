@@ -17,6 +17,9 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
+// Railway proxy fix - trust Railway's proxy
+app.set('trust proxy', 1);
+
 // Performance monitoring middleware (should be early in the stack)
 app.use(performanceMonitor.middleware());
 

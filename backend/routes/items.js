@@ -7,7 +7,7 @@ const Item = require('../models/Item');
 const { authenticateToken } = require('../middleware/auth');
 const AuditLog = require('../models/AuditLog');
 
-// Configure Cloudinary storage
+// Configure Cloudinary storage with Railway-friendly settings
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -18,15 +18,17 @@ const storage = new CloudinaryStorage({
       const random = Math.round(Math.random() * 1E9);
       return `item-${timestamp}-${random}`;
     },
-    transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }]
+    transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }],
+    resource_type: 'auto'
   }
 });
 
 const upload = multer({ 
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-    fieldSize: 10 * 1024 * 1024 // 10MB field limit
+    fileSize: 5 * 1024 * 1024, // Reduce to 5MB for Railway
+    fieldSize: 5 * 1024 * 1024,
+    parts: 20 // Limit form parts
   },
   fileFilter: (req, file, cb) => {
     console.log('🔍 File filter check:', {
@@ -41,10 +43,6 @@ const upload = multer({
       console.error('❌ File rejected - not an image:', file.mimetype);
       cb(new Error(`Only image files are allowed. Received: ${file.mimetype}`), false);
     }
-  },
-  onError: (err, next) => {
-    console.error('❌ Multer error:', err);
-    next(err);
   }
 });
 
