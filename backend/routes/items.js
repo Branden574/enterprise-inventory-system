@@ -170,6 +170,73 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Test Cloudinary upload endpoint
+router.post('/test-cloudinary-upload', authenticateToken, (req, res) => {
+  console.log('🧪 Testing Cloudinary upload...');
+  console.log('🧪 Request content-type:', req.headers['content-type']);
+  
+  // Use a simple multer configuration for testing
+  const testUpload = multer({
+    storage: multer.memoryStorage(), // Store in memory first
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: (req, file, cb) => {
+      console.log('🧪 File filter:', file.mimetype);
+      cb(null, true);
+    }
+  });
+  
+  testUpload.single('photo')(req, res, async (err) => {
+    if (err) {
+      console.error('🧪 Multer error:', err);
+      return res.status(400).json({ error: 'Multer error', details: err.message });
+    }
+    
+    try {
+      console.log('🧪 File received:', req.file ? 'YES' : 'NO');
+      if (req.file) {
+        console.log('🧪 File details:', {
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size
+        });
+        
+        // Try to upload to Cloudinary manually
+        const uploadResult = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder: 'inventory-test',
+              resource_type: 'auto'
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          uploadStream.end(req.file.buffer);
+        });
+        
+        console.log('🧪 Cloudinary upload successful:', uploadResult.public_id);
+        
+        res.json({
+          success: true,
+          message: 'Test upload successful',
+          url: uploadResult.secure_url,
+          public_id: uploadResult.public_id
+        });
+      } else {
+        res.status(400).json({ error: 'No file received' });
+      }
+    } catch (error) {
+      console.error('🧪 Upload test error:', error);
+      res.status(500).json({ 
+        error: 'Upload test failed', 
+        details: error.message,
+        stack: error.stack 
+      });
+    }
+  });
+});
+
 // Simple test route without file upload
 router.post('/test-simple', authenticateToken, async (req, res) => {
   try {
@@ -646,13 +713,63 @@ router.post('/test-cloudinary', authenticateToken, upload.single('photo'), async
   }
 });
 
+// Test Cloudinary connection
+router.get('/test-cloudinary-config', authenticateToken, async (req, res) => {
+  try {
+    console.log('🧪 Testing Cloudinary configuration...');
+    
+    // Test environment variables
+    const config = {
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET
+    };
+    
+    console.log('🧪 Cloudinary config check:', {
+      cloud_name: config.cloud_name ? 'SET' : 'MISSING',
+      api_key: config.api_key ? 'SET' : 'MISSING',
+      api_secret: config.api_secret ? 'SET' : 'MISSING'
+    });
+    
+    // Test Cloudinary API connection
+    const cloudinaryTest = await cloudinary.api.ping();
+    console.log('🧪 Cloudinary ping successful:', cloudinaryTest);
+    
+    res.json({
+      success: true,
+      message: 'Cloudinary configuration is working',
+      config: {
+        cloud_name: config.cloud_name ? 'SET' : 'MISSING',
+        api_key: config.api_key ? 'SET' : 'MISSING',
+        api_secret: config.api_secret ? 'SET' : 'MISSING'
+      },
+      ping: cloudinaryTest
+    });
+    
+  } catch (error) {
+    console.error('🧪 Cloudinary test failed:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Cloudinary configuration failed',
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 // Test endpoint to verify server is working
 router.get('/test-server', (req, res) => {
   res.json({ 
     message: 'Server is working!', 
     timestamp: new Date().toISOString(),
+    environment: {
+      node_env: process.env.NODE_ENV,
+      port: process.env.PORT
+    },
     cloudinary: {
-      configured: !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET)
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? 'SET' : 'MISSING',
+      api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'MISSING', 
+      api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING'
     }
   });
 });
