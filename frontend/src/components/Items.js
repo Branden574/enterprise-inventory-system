@@ -178,52 +178,92 @@ function Items() {
       return;
     }
 
-    const data = new FormData();
-    
-    // Log all form data being sent
-    console.log('📋 Form data being prepared:', {
-      name: form.name,
-      quantity: form.quantity,
-      location: form.location,
-      category: form.category,
-      photo: form.photo ? form.photo.name : 'none'
-    });
-
-    Object.entries(form).forEach(([key, value]) => {
-      if (key === 'customFields') {
-        data.append('customFields', JSON.stringify(value));
-        console.log('📋 Added customFields:', JSON.stringify(value));
-      } else if (value !== null && value !== undefined && value !== '') {
-        data.append(key, value);
-        console.log(`📋 Added ${key}:`, typeof value === 'object' ? value.name || '[File]' : value);
-      }
-    });
-
-    // Log FormData contents
-    console.log('📋 FormData entries:');
-    for (let pair of data.entries()) {
-      console.log(`  ${pair[0]}:`, pair[1]);
-    }
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (!token) {
         throw new Error('No authentication token found');
       }
 
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${token}`
-          // Don't set Content-Type for FormData - let axios handle it
-        }
-      };
+      let response;
 
-      if (editingId) {
-        await axios.put(`/api/items/${editingId}`, data, config);
-        setSnackbar({ open: true, message: 'Item updated!', severity: 'success' });
+      // If there's a photo, use FormData (multipart)
+      if (form.photo) {
+        console.log('📸 Uploading with image...');
+        const data = new FormData();
+        
+        // Log all form data being sent
+        console.log('📋 Form data being prepared:', {
+          name: form.name,
+          quantity: form.quantity,
+          location: form.location,
+          category: form.category,
+          photo: form.photo ? form.photo.name : 'none'
+        });
+
+        Object.entries(form).forEach(([key, value]) => {
+          if (key === 'customFields') {
+            data.append('customFields', JSON.stringify(value));
+            console.log('📋 Added customFields:', JSON.stringify(value));
+          } else if (value !== null && value !== undefined && value !== '') {
+            data.append(key, value);
+            console.log(`📋 Added ${key}:`, typeof value === 'object' ? value.name || '[File]' : value);
+          }
+        });
+
+        // Log FormData contents
+        console.log('📋 FormData entries:');
+        for (let pair of data.entries()) {
+          console.log(`  ${pair[0]}:`, pair[1]);
+        }
+
+        const config = {
+          headers: {
+            'Authorization': `Bearer ${token}`
+            // Don't set Content-Type for FormData - let axios handle it
+          }
+        };
+
+        if (editingId) {
+          response = await axios.put(`/api/items/${editingId}`, data, config);
+        } else {
+          response = await axios.post('/api/items', data, config);
+        }
       } else {
-        await axios.post('/api/items', data, config);
-        setSnackbar({ open: true, message: 'Item added!', severity: 'success' });
+        // No photo, use JSON
+        console.log('📝 Uploading without image...');
+        const jsonData = {
+          name: form.name,
+          description: form.description,
+          category: form.category,
+          quantity: form.quantity,
+          lowStockThreshold: form.lowStockThreshold,
+          barcode: form.barcode,
+          location: form.location,
+          notes: form.notes,
+          customFields: form.customFields
+        };
+
+        console.log('📋 JSON data being sent:', jsonData);
+
+        const config = {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        };
+
+        if (editingId) {
+          response = await axios.put(`/api/items/${editingId}`, jsonData, config);
+        } else {
+          response = await axios.post('/api/items', jsonData, config);
+        }
       }
+
+      setSnackbar({ 
+        open: true, 
+        message: editingId ? 'Item updated!' : 'Item added!', 
+        severity: 'success' 
+      });
       
       // Reset form with default values for custom fields
       const defaultCustomFields = {};

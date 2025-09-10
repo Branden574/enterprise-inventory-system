@@ -170,14 +170,118 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Simple test route without file upload
+router.post('/test-simple', authenticateToken, async (req, res) => {
+  try {
+    console.log('🧪 Simple test route hit');
+    console.log('🧪 Body:', req.body);
+    
+    const { name, quantity, location } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    
+    const itemData = {
+      name,
+      quantity: parseInt(quantity) || 0,
+      location: location || 'Test Location'
+    };
+    
+    const item = new Item(itemData);
+    await item.save();
+    
+    res.status(201).json({
+      success: true,
+      message: 'Simple item created successfully',
+      item: item
+    });
+    
+  } catch (error) {
+    console.error('🧪 Simple test error:', error);
+    res.status(500).json({ 
+      error: 'Simple test failed',
+      details: error.message 
+    });
+  }
+});
+
 // POST new item with Cloudinary image upload
-router.post('/', authenticateToken, (req, res, next) => {
+// POST new item - handle with and without images
+router.post('/', authenticateToken, async (req, res) => {
   console.log('🚀 Starting item creation request...');
-  console.log('📋 Request headers:', {
-    'content-type': req.headers['content-type'],
-    'content-length': req.headers['content-length']
-  });
+  console.log('📋 Content-Type:', req.headers['content-type']);
   
+  // Check if this is a multipart request (has image)
+  if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
+    console.log('📸 Multipart request detected - processing with file upload');
+    return handleWithImageUpload(req, res);
+  } else {
+    console.log('📝 JSON request detected - processing without file upload');
+    return handleWithoutImageUpload(req, res);
+  }
+});
+
+// Handle requests without image upload (JSON)
+async function handleWithoutImageUpload(req, res) {
+  try {
+    console.log('📝 Processing item without image...');
+    console.log('📋 Request body:', req.body);
+
+    const {
+      name,
+      description,
+      category,
+      quantity,
+      lowStockThreshold,
+      barcode,
+      customFields,
+      location,
+      notes
+    } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    const itemData = {
+      name,
+      description,
+      category: category || undefined,
+      quantity: parseInt(quantity) || 0,
+      lowStockThreshold: parseInt(lowStockThreshold) || 5,
+      barcode,
+      location,
+      notes,
+      customFields: customFields || {}
+    };
+
+    console.log('💾 Saving item to database (no image)...');
+    const item = new Item(itemData);
+    await item.save();
+    
+    console.log('✅ Item saved successfully:', item._id);
+
+    // Create audit log
+    await createAuditLog(
+      req.user, 
+      'CREATE', 
+      item.name, 
+      `Created item with quantity: ${item.quantity}`
+    );
+
+    res.status(201).json(item);
+  } catch (error) {
+    console.error('❌ Error creating item (no image):', error);
+    res.status(500).json({ 
+      error: 'Failed to create item', 
+      details: error.message 
+    });
+  }
+}
+
+// Handle requests with image upload (multipart)
+function handleWithImageUpload(req, res) {
   upload.single('photo')(req, res, (err) => {
     if (err) {
       console.error('❌ Multer error:', err);
@@ -188,10 +292,9 @@ router.post('/', authenticateToken, (req, res, next) => {
       });
     }
     
-    // Continue to the actual handler
     handleItemCreation(req, res);
   });
-});
+}
 
 async function handleItemCreation(req, res) {
   try {
