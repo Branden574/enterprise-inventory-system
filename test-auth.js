@@ -5,8 +5,8 @@ async function testAuth() {
     // First, let's try to login
     console.log('Testing login...');
     const loginResponse = await axios.post('http://localhost:5000/api/auth/login', {
-      username: 'admin',
-      password: 'admin123'
+      username: process.env.TEST_USERNAME || 'admin',
+      password: process.env.TEST_PASSWORD || 'defaultpassword'
     });
     
     console.log('Login successful:', loginResponse.data.user);
