@@ -20,8 +20,8 @@ router.post('/emergency-upgrade', authenticateToken, async (req, res) => {
       id: currentUser._id
     });
 
-    // Check if this is the superadmin account we want to upgrade
-    if (currentUser.username === 'superadmin@cvwest.org') {
+    // Check if this is the admin account we want to upgrade
+    if (currentUser.username === 'techadmin@cvwest.org' || currentUser.username === 'superadmin@cvwest.org') {
       currentUser.role = 'superadmin';
       await currentUser.save();
       
@@ -38,7 +38,7 @@ router.post('/emergency-upgrade', authenticateToken, async (req, res) => {
       });
     } else {
       res.status(403).json({ 
-        error: 'This endpoint is only for the designated superadmin account',
+        error: 'This endpoint is only for the designated admin account',
         currentUser: currentUser.username
       });
     }

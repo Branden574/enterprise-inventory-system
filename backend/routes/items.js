@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const cloudinary = require('../config/cloudinary');
+const { cloudinary } = require('../config/cloudinary');
 const Item = require('../models/Item');
 const { authenticateToken } = require('../middleware/auth');
 const AuditLog = require('../models/AuditLog');
@@ -13,10 +13,11 @@ const storage = new CloudinaryStorage({
   params: {
     folder: 'inventory-items',
     allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-    transformation: [
-      { width: 800, height: 600, crop: 'limit' },
-      { quality: 'auto', fetch_format: 'auto' }
-    ]
+    public_id: (req, file) => {
+      const timestamp = Date.now();
+      const random = Math.round(Math.random() * 1E9);
+      return `item-${timestamp}-${random}`;
+    },
   }
 });
 
