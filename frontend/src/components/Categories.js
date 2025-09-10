@@ -84,7 +84,7 @@ function Categories() {
     try {
       // Check if category is being used by any items
       const itemsResponse = await axios.get('/api/items');
-      const items = itemsResponse.data;
+      const items = itemsResponse.data.items || itemsResponse.data || [];
       const categoryInUse = items.some(item => item.category === id);
       
       if (categoryInUse) {

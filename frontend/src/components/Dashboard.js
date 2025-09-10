@@ -79,10 +79,11 @@ function Dashboard() {
       const responses = await Promise.all(promises);
       const [itemsRes, categoriesRes, notificationsRes, purchaseOrdersRes, activityRes] = responses;
 
-      const items = itemsRes.data;
-      const categories = categoriesRes.data;
-      const notifications = notificationsRes.data;
-      const purchaseOrders = purchaseOrdersRes.data;
+      // Handle different API response structures
+      const items = itemsRes.data.items || itemsRes.data || [];
+      const categories = categoriesRes.data.categories || categoriesRes.data || [];
+      const notifications = notificationsRes.data || [];
+      const purchaseOrders = purchaseOrdersRes.data || [];
 
       // Set recent activity for admins
       if (isAdmin && activityRes) {

@@ -58,7 +58,9 @@ function InternalOrderForm() {
     try {
       setLoading(true);
       const response = await axios.get('/api/items');
-      const availableItems = response.data.filter(item => item.quantity > 0);
+      // Handle the new API response structure {items: [...], pagination: {...}}
+      const itemsData = response.data.items || response.data || [];
+      const availableItems = itemsData.filter(item => item.quantity > 0);
       setItems(availableItems);
       console.log('Fetched items:', availableItems.length, 'items available');
     } catch (err) {

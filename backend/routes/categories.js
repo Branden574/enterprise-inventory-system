@@ -14,10 +14,7 @@ router.get('/', async (req, res) => {
     // Try cache first
     const cachedCategories = cacheManager.get(cacheKey);
     if (cachedCategories) {
-      return res.json({
-        categories: cachedCategories,
-        cached: true
-      });
+      return res.json(cachedCategories);
     }
 
     const startTime = Date.now();
@@ -27,13 +24,7 @@ router.get('/', async (req, res) => {
     // Cache for 10 minutes (categories change less frequently)
     cacheManager.set(cacheKey, categories, 600000);
     
-    res.json({
-      categories,
-      cached: false,
-      performance: {
-        queryTime
-      }
-    });
+    res.json(categories);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
