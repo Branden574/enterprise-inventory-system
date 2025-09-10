@@ -193,4 +193,66 @@ router.post('/change-password', authenticateToken, async (req, res) => {
   }
 });
 
+// Emergency superadmin upgrade (temporary endpoint)
+router.post('/upgrade-superadmin', authenticateToken, async (req, res) => {
+  try {
+    console.log('Superadmin upgrade attempt by user:', req.user.id);
+    
+    // Find the current user
+    const currentUser = await User.findById(req.user.id);
+    if (!currentUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    console.log('Current user details:', {
+      username: currentUser.username,
+      role: currentUser.role,
+      id: currentUser._id.toString()
+    });
+
+    // Only allow the specific superadmin account to upgrade
+    if (currentUser.username === 'superadmin@cvwest.org') {
+      const oldRole = currentUser.role;
+      currentUser.role = 'superadmin';
+      await currentUser.save();
+      
+      console.log('✅ Successfully upgraded role from', oldRole, 'to superadmin');
+      
+      // Log the upgrade
+      await auditLogger.logUserChange('UPDATE', currentUser, currentUser, 
+        { role: 'superadmin' }, { role: oldRole }, req);
+      
+      res.json({
+        success: true,
+        message: 'Successfully upgraded to superadmin',
+        user: {
+          id: currentUser._id,
+          username: currentUser.username,
+          role: currentUser.role,
+          previousRole: oldRole
+        }
+      });
+    } else {
+      res.status(403).json({ 
+        error: 'This upgrade is only available for the designated superadmin account',
+        currentUser: currentUser.username
+      });
+    }
+
+  } catch (error) {
+    console.error('Superadmin upgrade error:', error);
+    res.status(500).json({ error: 'Upgrade failed', details: error.message });
+  }
+});
+
+// Get current user profile
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
