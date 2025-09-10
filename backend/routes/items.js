@@ -323,4 +323,33 @@ router.post('/test-alerts', authenticateToken, checkRole(['admin', 'superadmin']
 const uploadsPath = path.join(__dirname, '../uploads');
 router.use('/uploads', express.static(uploadsPath));
 
+// API endpoint to serve images with proper headers
+router.get('/image/:filename', (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const filePath = path.join(__dirname, '../uploads', filename);
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+    
+    // Determine content type based on file extension
+    const ext = path.extname(filename).toLowerCase();
+    const contentType = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp'
+    }[ext] || 'application/octet-stream';
+    
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+    res.sendFile(filePath);
+  } catch (err) {
+    console.error('Error serving image:', err);
+    res.status(500).json({ error: 'Failed to serve image' });
+  }
+});
+
 module.exports = router;
