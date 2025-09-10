@@ -212,7 +212,7 @@ app.use('/api/health', healthRoutes);
 // Load routes with error handling
 let itemsRoutes, categoriesRoutes, authRoutes, usersRoutes, customFieldsRoutes;
 let importExportRoutes, purchaseOrdersRoutes, completedPOsRoutes, internalOrdersRoutes;
-let notificationsRoutes, auditLogsRoutes, emergencyRoutes;
+let notificationsRoutes, auditLogsRoutes, emergencyRoutes, setupRoutes;
 
 try {
   console.log('Loading items routes...');
@@ -239,6 +239,8 @@ try {
   auditLogsRoutes = require('./routes/auditLogs');
   console.log('Loading emergency routes...');
   emergencyRoutes = require('./routes/emergency');
+  console.log('Loading setup routes...');
+  setupRoutes = require('./routes/setup');
   console.log('All routes loaded successfully!');
 } catch (error) {
   console.error('Error loading routes:', error);
@@ -258,6 +260,7 @@ app.use('/api/internal-orders', internalOrdersRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/audit-logs', auditLogsRoutes);
 app.use('/api/emergency', emergencyRoutes);
+app.use('/api/setup', setupRoutes);
 
 // Global error handling middleware
 app.use((err, req, res, next) => {
