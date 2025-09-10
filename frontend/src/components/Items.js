@@ -74,9 +74,12 @@ function Items() {
   const fetchItems = async () => {
     try {
       const res = await axios.get('/api/items');
-      setItems(res.data);
+      // Ensure res.data is an array before setting
+      const itemsData = Array.isArray(res.data) ? res.data : [];
+      setItems(itemsData);
     } catch (err) {
       console.error('Items error:', err);
+      setItems([]); // Set empty array on error
       setSnackbar({ 
         open: true, 
         message: err.response?.data?.error || 'Failed to load items', 
@@ -88,9 +91,12 @@ function Items() {
   const fetchCategories = async () => {
     try {
       const res = await axios.get('/api/categories');
-      setCategories(res.data.sort((a, b) => a.name.localeCompare(b.name)));
+      // Ensure res.data is an array before sorting
+      const categoriesData = Array.isArray(res.data) ? res.data : [];
+      setCategories(categoriesData.sort((a, b) => a.name.localeCompare(b.name)));
     } catch (err) {
       console.error('Categories error:', err);
+      setCategories([]); // Set empty array on error
       setSnackbar({ 
         open: true, 
         message: err.response?.data?.error || 'Failed to load categories', 
@@ -297,7 +303,7 @@ function Items() {
   };
 
   // Filter items by search and category
-  const filteredItems = items.filter(item => {
+  const filteredItems = (Array.isArray(items) ? items : []).filter(item => {
     const searchLower = search.toLowerCase();
     const matchesSearch = (
       item.name?.toLowerCase().includes(searchLower) ||
