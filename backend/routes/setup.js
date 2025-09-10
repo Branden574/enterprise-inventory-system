@@ -18,17 +18,15 @@ router.post('/create-emergency-admin', async (req, res) => {
     await User.deleteOne({ username: 'techadmin@cvwest.org' });
     console.log('🗑️ Removed existing user');
     
-    // Create with bcrypt rounds matching User model (10)
-    const hashedPassword = await bcrypt.hash('Kj#9mP$vL2nX@5qR8tY3wZ!2025', 10);
-    
+    // Create with plain password - User model will hash it automatically
     const newUser = new User({
       username: 'techadmin@cvwest.org',
-      password: hashedPassword,
+      password: 'Kj#9mP$vL2nX@5qR8tY3wZ!2025', // Plain password - model will hash it
       role: 'superadmin'
     });
     
     await newUser.save();
-    console.log('✅ Created fresh superadmin user');
+    console.log('✅ Created fresh superadmin user with auto-hashed password');
 
     res.json({
       success: true,
