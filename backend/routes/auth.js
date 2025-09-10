@@ -281,44 +281,48 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
-// TEMPORARY: Password reset for test user (accessible via browser)
-router.get('/reset-test-user', async (req, res) => {
+// TEMPORARY: Fix branden615 password properly
+router.get('/fix-branden615', async (req, res) => {
   try {
-    console.log('=== PASSWORD RESET REQUEST ===');
+    console.log('=== FIXING BRANDEN615 PASSWORD ===');
     
-    // Find the test user
-    const user = await User.findOne({ username: 'branden615' });
-    if (!user) {
-      return res.status(404).json({ error: 'User branden615 not found' });
-    }
+    // Find and delete the problematic user
+    await User.deleteOne({ username: 'branden615' });
+    console.log('Deleted old branden615 user');
     
-    console.log('Found user:', { username: user.username, role: user.role });
-    
-    // Set a known password
-    const newPassword = 'test123456789!';
-    
-    // Update the password using the model's save method to trigger hashing
-    user.password = newPassword;
+    // Create a fresh user with known password
+    const userData = {
+      username: 'branden615',
+      email: 'branden574@gmail.com',
+      password: 'branden615123!',
+      firstName: 'Branden',
+      lastName: 'Walker',
+      role: 'user',
+      requirePasswordChange: false
+    };
+
+    const user = new User(userData);
     await user.save();
     
-    console.log('✅ Password reset successfully');
+    console.log('✅ Created fresh branden615 user');
     
-    // Test the new password immediately
-    const testMatch = await user.comparePassword(newPassword);
+    // Test the password immediately
+    const testMatch = await user.comparePassword('branden615123!');
     
     const result = { 
       success: true, 
-      message: 'Password reset to: test123456789!',
-      testResult: testMatch ? 'Password test PASSED' : 'Password test FAILED',
-      username: user.username
+      username: 'branden615',
+      password: 'branden615123!',
+      message: 'User branden615 recreated successfully',
+      testResult: testMatch ? 'Password test PASSED' : 'Password test FAILED'
     };
     
-    console.log('Reset result:', result);
+    console.log('Fix result:', result);
     
     res.json(result);
     
   } catch (error) {
-    console.error('Password reset error:', error);
+    console.error('Fix error:', error);
     res.status(500).json({ error: error.message });
   }
 });
