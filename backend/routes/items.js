@@ -745,8 +745,8 @@ router.post('/test-cloudinary', authenticateToken, upload.single('photo'), async
   }
 });
 
-// Test Cloudinary connection
-router.get('/test-cloudinary-config', authenticateToken, async (req, res) => {
+// Test Cloudinary connection (no auth required for testing)
+router.get('/test-cloudinary-config', async (req, res) => {
   try {
     console.log('🧪 Testing Cloudinary configuration...');
     
