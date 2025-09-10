@@ -209,32 +209,41 @@ console.log('Loading health routes...');
 const { router: healthRoutes, trackError } = require('./routes/health');
 app.use('/api/health', healthRoutes);
 
-console.log('Loading items routes...');
-const itemsRoutes = require('./routes/items');
-console.log('Loading categories routes...');
-const categoriesRoutes = require('./routes/categories');
-console.log('Loading auth routes...');
-const authRoutes = require('./routes/auth');
-console.log('Loading users routes...');
-const usersRoutes = require('./routes/users');
-console.log('Loading customFields routes...');
-const customFieldsRoutes = require('./routes/customFields');
-console.log('Loading import-export routes...');
-const importExportRoutes = require('./routes/import-export');
-console.log('Loading purchaseOrders routes...');
-const purchaseOrdersRoutes = require('./routes/purchaseOrders');
-console.log('Loading completedPOs routes...');
-const completedPOsRoutes = require('./routes/completedPOs');
-console.log('Loading internalOrders routes...');
-const internalOrdersRoutes = require('./routes/internalOrders');
-console.log('Loading notifications routes...');
-const notificationsRoutes = require('./routes/notifications');
-console.log('Loading audit logs routes...');
-const auditLogsRoutes = require('./routes/auditLogs');
-console.log('Loading debug routes...');
-const debugRoutes = require('./routes/debug');
-console.log('Loading emergency routes...');
-const emergencyRoutes = require('./routes/emergency');
+// Load routes with error handling
+let itemsRoutes, categoriesRoutes, authRoutes, usersRoutes, customFieldsRoutes;
+let importExportRoutes, purchaseOrdersRoutes, completedPOsRoutes, internalOrdersRoutes;
+let notificationsRoutes, auditLogsRoutes, emergencyRoutes;
+
+try {
+  console.log('Loading items routes...');
+  itemsRoutes = require('./routes/items');
+  console.log('Loading categories routes...');
+  categoriesRoutes = require('./routes/categories');
+  console.log('Loading auth routes...');
+  authRoutes = require('./routes/auth');
+  console.log('Loading users routes...');
+  usersRoutes = require('./routes/users');
+  console.log('Loading customFields routes...');
+  customFieldsRoutes = require('./routes/customFields');
+  console.log('Loading import-export routes...');
+  importExportRoutes = require('./routes/import-export');
+  console.log('Loading purchaseOrders routes...');
+  purchaseOrdersRoutes = require('./routes/purchaseOrders');
+  console.log('Loading completedPOs routes...');
+  completedPOsRoutes = require('./routes/completedPOs');
+  console.log('Loading internalOrders routes...');
+  internalOrdersRoutes = require('./routes/internalOrders');
+  console.log('Loading notifications routes...');
+  notificationsRoutes = require('./routes/notifications');
+  console.log('Loading audit logs routes...');
+  auditLogsRoutes = require('./routes/auditLogs');
+  console.log('Loading emergency routes...');
+  emergencyRoutes = require('./routes/emergency');
+  console.log('All routes loaded successfully!');
+} catch (error) {
+  console.error('Error loading routes:', error);
+  process.exit(1);
+}
 
 // Apply routes
 app.use('/api/items', itemsRoutes);
@@ -248,7 +257,6 @@ app.use('/api/completed-pos', completedPOsRoutes);
 app.use('/api/internal-orders', internalOrdersRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/audit-logs', auditLogsRoutes);
-app.use('/api/debug', debugRoutes);
 app.use('/api/emergency', emergencyRoutes);
 
 // Global error handling middleware
