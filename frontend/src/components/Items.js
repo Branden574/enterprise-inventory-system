@@ -74,9 +74,10 @@ function Items() {
   const fetchItems = async () => {
     try {
       const res = await axios.get('/api/items');
-      // Ensure res.data is an array before setting
-      const itemsData = Array.isArray(res.data) ? res.data : [];
-      setItems(itemsData);
+      // Handle the new API response structure {items: [...], pagination: {...}}
+      const itemsData = res.data.items || res.data || [];
+      const realItemsArray = Array.isArray(itemsData) ? itemsData : [];
+      setItems(realItemsArray);
     } catch (err) {
       console.error('Items error:', err);
       setItems([]); // Set empty array on error
