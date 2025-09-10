@@ -323,13 +323,42 @@ router.post('/test-alerts', authenticateToken, checkRole(['admin', 'superadmin']
 const uploadsPath = path.join(__dirname, '../uploads');
 router.use('/uploads', express.static(uploadsPath));
 
+// Debug endpoint to list available images
+router.get('/images/list', authenticateToken, async (req, res) => {
+  try {
+    const uploadsPath = path.join(__dirname, '../uploads');
+    console.log('Checking uploads directory:', uploadsPath);
+    
+    if (!fs.existsSync(uploadsPath)) {
+      return res.json({ error: 'Uploads directory does not exist', path: uploadsPath });
+    }
+    
+    const files = fs.readdirSync(uploadsPath).filter(file => {
+      const ext = path.extname(file).toLowerCase();
+      return ['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext);
+    });
+    
+    res.json({
+      uploadsPath,
+      totalImages: files.length,
+      images: files.slice(0, 20) // First 20 images
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // API endpoint to serve images with proper headers
-router.get('/image/:filename', (req, res) => {
+router.get('/image/:filename', async (req, res) => {
   try {
     const filename = req.params.filename;
     const filePath = path.join(__dirname, '../uploads', filename);
     
+    console.log('Image request for:', filename);
+    console.log('Looking for file at:', filePath);
+    
     if (!fs.existsSync(filePath)) {
+      console.log('File not found:', filePath);
       return res.status(404).json({ error: 'Image not found' });
     }
     
@@ -342,6 +371,8 @@ router.get('/image/:filename', (req, res) => {
       '.gif': 'image/gif',
       '.webp': 'image/webp'
     }[ext] || 'application/octet-stream';
+    
+    console.log('Serving image with content type:', contentType);
     
     res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
