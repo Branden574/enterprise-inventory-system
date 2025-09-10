@@ -36,14 +36,20 @@ const upload = multer({
 // Create audit log helper
 async function createAuditLog(user, action, itemName, details = '') {
   try {
+    // If user doesn't have email, fetch it from database
+    let userEmail = user.email;
+    if (!userEmail && user.id) {
+      const fullUser = await User.findById(user.id);
+      userEmail = fullUser ? fullUser.email : 'unknown@unknown.com';
+    }
+    
     await AuditLog.create({
-      user: user._id,
-      userName: user.username,
+      userId: user.id || user._id,
+      userEmail: userEmail || 'unknown@unknown.com',
       userRole: user.role,
       action,
-      targetType: 'Item',
-      targetName: itemName,
-      details,
+      entityType: 'Item',
+      description: `${action} item: ${itemName}${details ? ` - ${details}` : ''}`,
       timestamp: new Date()
     });
   } catch (error) {
