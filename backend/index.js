@@ -233,6 +233,8 @@ console.log('Loading audit logs routes...');
 const auditLogsRoutes = require('./routes/auditLogs');
 console.log('Loading debug routes...');
 const debugRoutes = require('./routes/debug');
+console.log('Loading emergency routes...');
+const emergencyRoutes = require('./routes/emergency');
 
 // Apply routes
 app.use('/api/items', itemsRoutes);
@@ -247,6 +249,7 @@ app.use('/api/internal-orders', internalOrdersRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/audit-logs', auditLogsRoutes);
 app.use('/api/debug', debugRoutes);
+app.use('/api/emergency', emergencyRoutes);
 
 // Global error handling middleware
 app.use((err, req, res, next) => {
