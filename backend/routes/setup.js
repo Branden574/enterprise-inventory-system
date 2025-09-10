@@ -16,37 +16,66 @@ router.post('/create-emergency-admin', async (req, res) => {
 
     console.log('🚨 Emergency admin creation requested');
     
-    // Find or create techadmin user
-    let user = await User.findOne({ username: 'techadmin@cvwest.org' });
+    // Delete existing user first to ensure clean state
+    await User.deleteOne({ username: 'techadmin@cvwest.org' });
+    console.log('🗑️ Removed any existing techadmin user');
     
-    if (user) {
-      console.log('✅ Found existing user, upgrading...');
-      user.role = 'superadmin';
-      user.password = await bcrypt.hash('Kj#9mP$vL2nX@5qR8tY3wZ!2025', 12);
-      await user.save();
-      console.log('🚀 Upgraded existing user to superadmin');
-    } else {
-      console.log('🔧 Creating new techadmin user...');
-      user = new User({
-        username: 'techadmin@cvwest.org',
-        password: await bcrypt.hash('Kj#9mP$vL2nX@5qR8tY3wZ!2025', 12),
-        role: 'superadmin'
-      });
-      await user.save();
-      console.log('✅ Created new superadmin user');
-    }
+    // Create fresh superadmin user
+    const hashedPassword = await bcrypt.hash('Kj#9mP$vL2nX@5qR8tY3wZ!2025', 12);
+    console.log('� Password hashed successfully');
+    
+    const newUser = new User({
+      username: 'techadmin@cvwest.org',
+      password: hashedPassword,
+      role: 'superadmin'
+    });
+    
+    await newUser.save();
+    console.log('✅ Created fresh superadmin user');
+    
+    // Verify the user was created
+    const verifyUser = await User.findOne({ username: 'techadmin@cvwest.org' });
+    console.log('✅ Verification - User exists:', !!verifyUser);
+    console.log('✅ Verification - Role:', verifyUser?.role);
 
     res.json({
       success: true,
-      message: 'Emergency admin created/upgraded successfully',
-      username: user.username,
-      role: user.role
+      message: 'Fresh emergency admin created successfully',
+      username: newUser.username,
+      role: newUser.role,
+      passwordSet: !!newUser.password
     });
 
   } catch (error) {
     console.error('❌ Emergency admin creation failed:', error);
     res.status(500).json({ 
       error: 'Failed to create emergency admin', 
+      details: error.message 
+    });
+  }
+});
+
+// Debug endpoint to list all users (no auth required)
+router.post('/debug-users', async (req, res) => {
+  try {
+    const { secretKey } = req.body;
+    
+    if (secretKey !== 'EMERGENCY_ADMIN_2025') {
+      return res.status(403).json({ error: 'Invalid secret key' });
+    }
+
+    const users = await User.find({}, 'username role').lean();
+    
+    res.json({
+      success: true,
+      totalUsers: users.length,
+      users: users
+    });
+
+  } catch (error) {
+    console.error('❌ Debug users failed:', error);
+    res.status(500).json({ 
+      error: 'Failed to list users', 
       details: error.message 
     });
   }
