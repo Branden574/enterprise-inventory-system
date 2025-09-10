@@ -115,6 +115,15 @@ router.get('/', authenticateToken, async (req, res) => {
       Item.countDocuments(query)
     ]);
 
+    // Debug: Log photo URLs
+    items.forEach(item => {
+      if (item.photo) {
+        console.log(`📸 Item "${item.name}" has photo: ${item.photo}`);
+      } else {
+        console.log(`📷 Item "${item.name}" has no photo`);
+      }
+    });
+
     const totalPages = Math.ceil(totalItems / limitNum);
 
     res.json({
@@ -151,6 +160,15 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // POST new item with Cloudinary image upload
 router.post('/', authenticateToken, upload.single('photo'), async (req, res) => {
   try {
+    console.log('📸 Creating item with file:', req.file ? 'YES' : 'NO');
+    if (req.file) {
+      console.log('📸 File details:', {
+        path: req.file.path,
+        filename: req.file.filename,
+        size: req.file.size
+      });
+    }
+
     const {
       name,
       description,
@@ -187,10 +205,16 @@ router.post('/', authenticateToken, upload.single('photo'), async (req, res) => 
     if (req.file) {
       itemData.photo = req.file.path; // Cloudinary URL
       itemData.photoPublicId = req.file.filename; // Cloudinary public ID
+      console.log('📸 Adding photo data to item:', {
+        photo: itemData.photo,
+        photoPublicId: itemData.photoPublicId
+      });
     }
 
     const item = new Item(itemData);
     await item.save();
+    
+    console.log('✅ Item saved with photo:', item.photo);
 
     // Create audit log
     await createAuditLog(
@@ -423,6 +447,43 @@ router.get('/reports/value', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error calculating inventory value:', error);
     res.status(500).json({ error: 'Failed to calculate inventory value' });
+  }
+});
+
+// Test Cloudinary upload endpoint
+router.post('/test-cloudinary', authenticateToken, upload.single('photo'), async (req, res) => {
+  try {
+    console.log('🧪 Testing Cloudinary upload...');
+    console.log('🧪 File received:', req.file ? 'YES' : 'NO');
+    
+    if (req.file) {
+      console.log('🧪 Cloudinary upload result:', {
+        path: req.file.path,
+        filename: req.file.filename,
+        size: req.file.size,
+        format: req.file.format,
+        resource_type: req.file.resource_type
+      });
+      
+      res.json({
+        success: true,
+        message: 'Cloudinary upload successful!',
+        url: req.file.path,
+        publicId: req.file.filename
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'No file received'
+      });
+    }
+  } catch (error) {
+    console.error('🧪 Cloudinary test error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Cloudinary test failed',
+      error: error.message
+    });
   }
 });
 

@@ -194,8 +194,8 @@ function Items() {
 
       const config = {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
+          'Authorization': `Bearer ${token}`
+          // Don't set Content-Type for FormData - let axios handle it
         }
       };
 
@@ -245,7 +245,8 @@ function Items() {
       customFields: item.customFields || {}
     });
     setEditingId(item._id);
-    setImagePreview(item.photo ? `/uploads/${item.photo}` : null);
+    // Use the full Cloudinary URL or construct local path for legacy uploads
+    setImagePreview(item.photo ? (item.photo.startsWith('http') ? item.photo : `/uploads/${item.photo}`) : null);
     setOpenDialog(true);
   };
 
