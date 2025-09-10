@@ -281,11 +281,12 @@ app.use('/api/*', (req, res) => {
 });
 
 // Serve React app for all other non-uploads routes (client-side routing)
-app.get('*', (req, res, next) => {
+app.use((req, res, next) => {
   // Don't serve React app for uploads or API routes
-  if (req.path.startsWith('/uploads/') || req.path.startsWith('/api/')) {
+  if (req.path.startsWith('/uploads') || req.path.startsWith('/api')) {
     return next();
   }
+  // For all other paths, serve the React app
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
