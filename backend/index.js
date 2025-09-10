@@ -68,8 +68,26 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Enhanced CORS configuration
+const allowedOrigins = [
+  'http://localhost:3000', 
+  'http://localhost:3001', 
+  'http://127.0.0.1:3000', 
+  'http://127.0.0.1:3001',
+  'https://enterprise-inventory-system-production.up.railway.app',
+  'https://dc-inventory-management.netlify.app'
+];
+
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Role'],
@@ -178,9 +196,12 @@ const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/uploads/completed-pos', express.static(path.join(__dirname, 'uploads/completed-pos')));
 
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Routes
 app.get('/', (req, res) => {
-  res.send('Inventory API running');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Health check routes (no authentication required)
@@ -249,14 +270,19 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Handle 404 errors
-app.use('*', (req, res) => {
+// Handle 404 errors for API routes only
+app.use('/api/*', (req, res) => {
   res.status(404).json({
     error: 'Route not found',
     path: req.originalUrl,
     method: req.method,
     timestamp: new Date().toISOString()
   });
+});
+
+// Serve React app for all other routes (client-side routing)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Handle uncaught exceptions
