@@ -302,15 +302,9 @@ app.use('/api/*', (req, res) => {
   });
 });
 
-
-// Serve React app for all other routes (SPA support)
+// Serve React app for all other routes (SPA support) - MUST BE LAST
 app.get('*', (req, res) => {
-  // Only serve index.html for non-API, non-static requests
-  if (!req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
-    res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
-  } else {
-    res.status(404).send('Not found');
-  }
+  res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
 });
 
 // Handle uncaught exceptions
