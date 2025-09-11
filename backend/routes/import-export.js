@@ -178,7 +178,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
       // Standard mappings
       'title': ['title', 'book title', 'book name', 'name'],
       'name': ['name', 'title', 'book title', 'book name'],
-      'isbn13': ['isbn-13', 'isbn13', 'isbn_13', 'isbn 13', 'isbn13:', 'isbn-13:', 'isbn_13:', 'isbn 13:'],
+      'isbn13': ['isbn-13', 'isbn13', 'isbn_13', 'isbn 13', 'isbn13:', 'isbn-13:', 'isbn_13:', 'isbn 13:', 'isbn-13 number', 'isbn13 number', 'isbn number'],
       'isbn10': ['isbn-10', 'isbn10', 'isbn_10', 'isbn 10'],
       'category': ['category', 'subject', 'type', 'classification'],
       'cases': ['cases', 'case', 'boxes', 'containers'],
@@ -220,8 +220,18 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
         if (rowCount <= 3) {
           console.log(`\n--- Row ${rowCount} Debug Info ---`);
           console.log('Available columns:', Object.keys(row));
+          console.log('Raw row data:', row);
           console.log('Mapped data:', mappedData);
           console.log('ISBN-13 specifically:', mappedData.isbn13);
+          
+          // Additional debug for ISBN-13 detection
+          const possibleISBNColumns = Object.keys(row).filter(key => 
+            key.toLowerCase().includes('isbn') || key.toLowerCase().includes('13')
+          );
+          console.log('Columns containing ISBN or 13:', possibleISBNColumns);
+          possibleISBNColumns.forEach(col => {
+            console.log(`  ${col}: "${row[col]}"`);
+          });
         }
 
         // Validate required fields
