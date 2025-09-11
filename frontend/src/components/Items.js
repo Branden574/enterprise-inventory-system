@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../utils/axios';
 import {
-  Button, TextField, Select, MenuItem, InputLabel, FormControl, Card, CardContent, CardActions, Typography, Grid, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Fab, Snackbar, Alert, Box, Pagination
+  Button, TextField, Select, MenuItem, InputLabel, FormControl, Card, CardContent, CardActions, Typography, Grid, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Fab, Snackbar, Alert, Box, Pagination, Checkbox, FormControlLabel
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -48,6 +48,29 @@ function Items() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 30;
+  
+  // Bulk delete state
+  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+
+  // Decode JWT to get user role
+  const getUserRole = () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) return null;
+      
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.role;
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    setUserRole(getUserRole());
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -391,6 +414,105 @@ function Items() {
     }
   };
 
+  // Bulk delete functions
+  const handleSelectItem = (itemId) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId);
+    } else {
+      newSelected.add(itemId);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedItems.size === paginatedItems.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(paginatedItems.map(item => item._id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedItems.size === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedItems.size} item(s)? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Delete items in parallel
+      const deletePromises = Array.from(selectedItems).map(id =>
+        axios.delete(`/api/items/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      );
+
+      await Promise.all(deletePromises);
+      
+      setSnackbar({ 
+        open: true, 
+        message: `Successfully deleted ${selectedItems.size} item(s)!`, 
+        severity: 'success' 
+      });
+      
+      setSelectedItems(new Set());
+      setBulkDeleteMode(false);
+      fetchItems();
+    } catch (err) {
+      console.error('Bulk delete error:', err);
+      setSnackbar({ 
+        open: true, 
+        message: err.response?.data?.error || err.message || 'Failed to delete items', 
+        severity: 'error' 
+      });
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!confirm('Are you sure you want to delete ALL items? This action cannot be undone and will delete every item in your inventory!')) {
+      return;
+    }
+    
+    if (!confirm('This will permanently delete ALL inventory items. Type DELETE to confirm:') || 
+        prompt('Type "DELETE" to confirm:') !== 'DELETE') {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      await axios.delete('/api/items/bulk/all', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      setSnackbar({ 
+        open: true, 
+        message: 'All items deleted successfully!', 
+        severity: 'success' 
+      });
+      
+      setSelectedItems(new Set());
+      setBulkDeleteMode(false);
+      fetchItems();
+    } catch (err) {
+      console.error('Delete all error:', err);
+      setSnackbar({ 
+        open: true, 
+        message: err.response?.data?.error || err.message || 'Failed to delete all items', 
+        severity: 'error' 
+      });
+    }
+  };
+
   const handleAddClick = () => {
     // Initialize custom fields with their default values
     const defaultCustomFields = {};
@@ -540,35 +662,85 @@ function Items() {
   };
 
   return (
-    <Box sx={{ position: 'relative', minHeight: '80vh', pb: 6, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, letterSpacing: 1, mt: 2, mb: 2, textAlign: 'center' }}>Items</Typography>
+    <Box sx={{ 
+      position: 'relative', 
+      minHeight: '80vh', 
+      pb: 6, 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center',
+      px: { xs: 1, sm: 2 }, // Mobile padding
+      width: '100%',
+      maxWidth: '100%',
+      overflow: 'hidden'
+    }}>
+      <Typography 
+        variant="h4" 
+        gutterBottom 
+        sx={{ 
+          fontWeight: 700, 
+          letterSpacing: 1, 
+          mt: 2, 
+          mb: 2, 
+          textAlign: 'center',
+          fontSize: { xs: '1.75rem', sm: '2.125rem' } // Responsive font size
+        }}
+      >
+        Items
+      </Typography>
       
-      {/* Search and Filter Section */}
-      <Box sx={{ mb: 3, width: '100%', maxWidth: 600 }}>
+      {/* Search and Filter Section - Mobile Responsive */}
+      <Box sx={{ 
+        mb: 3, 
+        width: '100%', 
+        maxWidth: { xs: '100%', sm: 600 },
+        px: { xs: 0, sm: 1 }
+      }}>
         <TextField
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search items..."
+          placeholder="Search by title, ISBN, publisher..."
           variant="outlined"
           size="small"
           fullWidth
-          sx={{ mb: 2 }}
+          sx={{ 
+            mb: 2,
+            '& .MuiInputBase-input': {
+              fontSize: { xs: '0.875rem', sm: '1rem' }
+            }
+          }}
         />
         
-        {/* Barcode Search Button */}
-        <Box display="flex" gap={1} mb={2}>
+        {/* Mobile-friendly button and filter layout */}
+        <Box sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 1, sm: 2 },
+          alignItems: { xs: 'stretch', sm: 'center' },
+          mb: 1
+        }}>
+          {/* Barcode Search Button */}
           <Button
             variant="outlined"
             startIcon={<QrCodeScannerIcon />}
             onClick={openScannerForSearch}
             size="small"
+            sx={{ 
+              order: { xs: 2, sm: 1 },
+              minHeight: '40px'
+            }}
           >
             Scan to Search
           </Button>
-        </Box>
-        
-        <Box display="flex" gap={2} alignItems="center">
-          <FormControl size="small" sx={{ minWidth: 200 }}>
+          
+          {/* Category Filter */}
+          <FormControl 
+            size="small" 
+            sx={{ 
+              minWidth: { xs: '100%', sm: 200 },
+              order: { xs: 1, sm: 2 }
+            }}
+          >
             <InputLabel>Filter by Category</InputLabel>
             <Select
               value={categoryFilter}
@@ -582,10 +754,16 @@ function Items() {
             </Select>
           </FormControl>
           
+          {/* Clear Filters Button */}
           {(search || categoryFilter) && (
             <Button 
               variant="outlined" 
               size="small"
+              sx={{ 
+                order: 3,
+                minHeight: '40px',
+                whiteSpace: 'nowrap'
+              }}
               onClick={() => {
                 setSearch('');
                 setCategoryFilter('');
@@ -595,6 +773,72 @@ function Items() {
             </Button>
           )}
         </Box>
+        
+        {/* Bulk Delete Controls - SuperAdmin Only */}
+        {userRole === 'superadmin' && (
+          <Box sx={{ 
+            mt: 2, 
+            p: 2, 
+            border: '1px solid #ddd', 
+            borderRadius: 2,
+            backgroundColor: '#f9f9f9'
+          }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+              SuperAdmin Tools
+            </Typography>
+            <Box sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: 1,
+              alignItems: { xs: 'stretch', sm: 'center' }
+            }}>
+              <Button
+                variant={bulkDeleteMode ? "contained" : "outlined"}
+                color={bulkDeleteMode ? "secondary" : "primary"}
+                size="small"
+                onClick={() => {
+                  setBulkDeleteMode(!bulkDeleteMode);
+                  setSelectedItems(new Set());
+                }}
+              >
+                {bulkDeleteMode ? "Exit Select Mode" : "Select Multiple Items"}
+              </Button>
+              
+              {bulkDeleteMode && (
+                <>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={handleSelectAll}
+                    disabled={paginatedItems.length === 0}
+                  >
+                    {selectedItems.size === paginatedItems.length ? "Deselect All" : "Select All"}
+                  </Button>
+                  
+                  <Button
+                    variant="contained"
+                    color="error"
+                    size="small"
+                    onClick={handleBulkDelete}
+                    disabled={selectedItems.size === 0}
+                  >
+                    Delete Selected ({selectedItems.size})
+                  </Button>
+                </>
+              )}
+              
+              <Button
+                variant="outlined"
+                color="error"
+                size="small"
+                onClick={handleDeleteAll}
+                sx={{ ml: { sm: 'auto' } }}
+              >
+                Delete ALL Items
+              </Button>
+            </Box>
+          </Box>
+        )}
       </Box>
       
       {sortedItems.length === 0 ? (
@@ -616,21 +860,102 @@ function Items() {
             </Typography>
           </Box>
           
-          <Grid container spacing={3} justifyContent="center">
+          <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center" sx={{ px: { xs: 1, sm: 0 } }}>
             {paginatedItems.map(item => (
-              <Grid item xs={12} sm={6} md={4} key={item._id} id={`item-${item._id}`}>
-                <Card sx={{ boxShadow: 4, borderRadius: 3, transition: '0.2s', '&:hover': { boxShadow: 8, transform: 'translateY(-4px) scale(1.03)' } }}>
-                  <CardContent>
+              <Grid item xs={12} sm={6} md={4} lg={3} key={item._id} id={`item-${item._id}`}>
+                <Card sx={{ 
+                  boxShadow: 4, 
+                  borderRadius: 3, 
+                  transition: '0.2s', 
+                  '&:hover': { boxShadow: 8, transform: 'translateY(-4px) scale(1.03)' },
+                  height: '100%', // Ensure consistent card heights
+                  display: 'flex',
+                  flexDirection: 'column',
+                  position: 'relative'
+                }}>
+                  {/* Bulk Delete Checkbox */}
+                  {bulkDeleteMode && (
+                    <Checkbox
+                      checked={selectedItems.has(item._id)}
+                      onChange={() => handleSelectItem(item._id)}
+                      sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        zIndex: 2,
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        borderRadius: '50%',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 1)',
+                        }
+                      }}
+                    />
+                  )}
+                  
+                  <CardContent sx={{ flexGrow: 1 }}>
                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      {item.photo && <img src={item.photo} alt={item.name} style={{ maxWidth: 160, maxHeight: 120, borderRadius: 8, marginBottom: 8 }} />}
-                      <Typography variant="h6" sx={{ fontWeight: 600 }}>{item.name}</Typography>
-                      {item.title && <Typography color="text.secondary" sx={{ fontStyle: 'italic' }}>{item.title}</Typography>}
-                      {item.isbn13 && <Typography color="text.secondary" variant="body2">ISBN-13: {item.isbn13}</Typography>}
-                      {item.publisher && <Typography color="text.secondary" variant="body2">Publisher: {item.publisher}</Typography>}
-                      <Typography color="text.secondary">Qty: {item.quantity}</Typography>
-                      {item.cases > 0 && <Typography color="text.secondary">Cases: {item.cases} (Qty per case: {item.caseQty})</Typography>}
-                      <Typography color="text.secondary">Location: {item.location}</Typography>
-                      <Typography color="text.secondary">Category: {item.category?.name || 'None'}</Typography>
+                      {item.photo && <img src={item.photo} alt={item.name} style={{ 
+                        maxWidth: '100%', 
+                        maxHeight: 120, 
+                        borderRadius: 8, 
+                        marginBottom: 8,
+                        objectFit: 'contain' 
+                      }} />}
+                      <Typography variant="h6" sx={{ 
+                        fontWeight: 600, 
+                        textAlign: 'center',
+                        fontSize: { xs: '1rem', sm: '1.25rem' },
+                        lineHeight: 1.2,
+                        mb: 1
+                      }}>
+                        {item.name}
+                      </Typography>
+                      {item.title && (
+                        <Typography color="text.secondary" sx={{ 
+                          fontStyle: 'italic', 
+                          textAlign: 'center',
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                          mb: 1
+                        }}>
+                          {item.title}
+                        </Typography>
+                      )}
+                      {item.isbn13 && (
+                        <Typography color="text.secondary" variant="body2" sx={{ 
+                          textAlign: 'center',
+                          fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                          wordBreak: 'break-all'
+                        }}>
+                          ISBN: {item.isbn13}
+                        </Typography>
+                      )}
+                      {item.publisher && (
+                        <Typography color="text.secondary" variant="body2" sx={{ 
+                          textAlign: 'center',
+                          fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                        }}>
+                          {item.publisher}
+                        </Typography>
+                      )}
+                      <Typography color="text.secondary" sx={{ 
+                        textAlign: 'center',
+                        fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                        fontWeight: 500
+                      }}>
+                        Qty: {item.quantity}
+                      </Typography>
+                      <Typography color="text.secondary" sx={{ 
+                        textAlign: 'center',
+                        fontSize: { xs: '0.8rem', sm: '0.875rem' }
+                      }}>
+                        Location: {item.location}
+                      </Typography>
+                      <Typography color="text.secondary" sx={{ 
+                        textAlign: 'center',
+                        fontSize: { xs: '0.8rem', sm: '0.875rem' }
+                      }}>
+                        Category: {item.category?.name || 'None'}
+                      </Typography>
                       {item.status && (
                         <Typography 
                           color={
@@ -639,42 +964,77 @@ function Items() {
                             item.status === 'Out of Stock' || item.status === 'out-of-stock' ? 'error.main' :
                             'text.secondary'
                           }
-                          sx={{ fontWeight: 500 }}
+                          sx={{ 
+                            fontWeight: 500,
+                            textAlign: 'center',
+                            fontSize: { xs: '0.8rem', sm: '0.875rem' }
+                          }}
                         >
                           Status: {item.status}
                         </Typography>
                       )}
-                      {item.subject && <Typography color="text.secondary" variant="body2">Subject: {item.subject}</Typography>}
-                      {item.gradeLevel && <Typography color="text.secondary" variant="body2">Grade: {item.gradeLevel}</Typography>}
-                      <Typography color="text.secondary">Notes: {item.notes}</Typography>
+                      {item.notes && (
+                        <Typography color="text.secondary" sx={{ 
+                          textAlign: 'center',
+                          fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                          mt: 1
+                        }}>
+                          Notes: {item.notes}
+                        </Typography>
+                      )}
                       {item.customFields && Object.entries(item.customFields).map(([key, value]) => (
-                        <Typography color="text.secondary" key={key}>{key}: {value}</Typography>
+                        <Typography color="text.secondary" key={key} sx={{ 
+                          textAlign: 'center',
+                          fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                        }}>
+                          {key}: {value}
+                        </Typography>
                       ))}
                     </Box>
                   </CardContent>
-                  <CardActions sx={{ justifyContent: 'center' }}>
-                    <IconButton color="primary" onClick={() => handleEdit(item)}><EditIcon /></IconButton>
-                    <IconButton color="error" onClick={() => handleDelete(item._id)}><DeleteIcon /></IconButton>
+                  <CardActions sx={{ justifyContent: 'center', pt: 0 }}>
+                    <IconButton 
+                      color="primary" 
+                      onClick={() => handleEdit(item)}
+                      size={{ xs: 'small', sm: 'medium' }}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton 
+                      color="error" 
+                      onClick={() => handleDelete(item._id)}
+                      size={{ xs: 'small', sm: 'medium' }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
                   </CardActions>
                 </Card>
               </Grid>
             ))}
           </Grid>
           
-          {/* Pagination Controls */}
+          {/* Pagination Controls - Mobile Responsive */}
           {totalPages > 1 && (
-            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+            <Box sx={{ 
+              mt: 4, 
+              display: 'flex', 
+              justifyContent: 'center',
+              width: '100%',
+              px: { xs: 1, sm: 0 }
+            }}>
               <Pagination 
                 count={totalPages} 
                 page={currentPage} 
                 onChange={handlePageChange}
                 color="primary"
-                size="large"
+                size={{ xs: 'small', sm: 'large' }}
                 showFirstButton
                 showLastButton
                 sx={{
                   '& .MuiPaginationItem-root': {
-                    fontSize: '1rem',
+                    fontSize: { xs: '0.75rem', sm: '1rem' },
+                    minWidth: { xs: '28px', sm: '32px' },
+                    height: { xs: '28px', sm: '32px' }
                   }
                 }}
               />
@@ -682,14 +1042,48 @@ function Items() {
           )}
         </>
       )}
-      <Fab color="primary" aria-label="add" onClick={handleAddClick} sx={{ position: 'fixed', bottom: 32, right: 32, zIndex: 100 }}>
+      
+      {/* Mobile-optimized Floating Action Button */}
+      <Fab 
+        color="primary" 
+        aria-label="add" 
+        onClick={handleAddClick} 
+        sx={{ 
+          position: 'fixed', 
+          bottom: { xs: 20, sm: 32 }, 
+          right: { xs: 20, sm: 32 }, 
+          zIndex: 100,
+          width: { xs: 48, sm: 56 },
+          height: { xs: 48, sm: 56 }
+        }}
+      >
         <AddIcon />
       </Fab>
-      <Dialog open={openDialog} onClose={handleDialogClose} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingId ? 'Edit Item' : 'Add Item'}</DialogTitle>
-        <DialogContent>
+      
+      {/* Mobile-responsive Dialog */}
+      <Dialog 
+        open={openDialog} 
+        onClose={handleDialogClose} 
+        maxWidth="sm" 
+        fullWidth
+        fullScreen={{ xs: true, sm: false }} // Full screen on mobile
+        sx={{
+          '& .MuiDialog-paper': {
+            margin: { xs: 0, sm: 2 },
+            width: { xs: '100%', sm: 'calc(100% - 64px)' },
+            maxHeight: { xs: '100%', sm: 'calc(100% - 64px)' }
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          fontSize: { xs: '1.25rem', sm: '1.5rem' },
+          py: { xs: 1, sm: 2 }
+        }}>
+          {editingId ? 'Edit Item' : 'Add Item'}
+        </DialogTitle>
+        <DialogContent sx={{ px: { xs: 2, sm: 3 } }}>
           <form id="item-form" onSubmit={handleSubmit} encType="multipart/form-data">
-            <Grid container spacing={2} alignItems="center">
+            <Grid container spacing={{ xs: 1, sm: 2 }} alignItems="center">
               {/* Essential Fields */}
               <Grid item xs={12}>
                 <TextField 
@@ -700,6 +1094,7 @@ function Items() {
                   required
                   fullWidth 
                   margin="normal"
+                  size={{ xs: 'small', sm: 'medium' }}
                 />
               </Grid>
               
@@ -713,13 +1108,14 @@ function Items() {
                   fullWidth 
                   margin="normal"
                   placeholder="978-1-234-56789-0"
+                  size={{ xs: 'small', sm: 'medium' }}
                 />
               </Grid>
               
               <Grid item xs={12} sm={4}>
                 <TextField 
                   name="quantity" 
-                  label="Quantity Available *" 
+                  label="Quantity *" 
                   type="number" 
                   inputProps={{ 
                     min: "0",
@@ -732,6 +1128,7 @@ function Items() {
                   margin="normal"
                   error={!!formErrors.quantity}
                   helperText={formErrors.quantity}
+                  size={{ xs: 'small', sm: 'medium' }}
                 />
               </Grid>
               
@@ -746,11 +1143,17 @@ function Items() {
                   margin="normal"
                   error={!!formErrors.location}
                   helperText={formErrors.location}
+                  size={{ xs: 'small', sm: 'medium' }}
                 />
               </Grid>
               
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth margin="normal" error={!!formErrors.category}>
+                <FormControl 
+                  fullWidth 
+                  margin="normal" 
+                  error={!!formErrors.category}
+                  size={{ xs: 'small', sm: 'medium' }}
+                >
                   <InputLabel>Category</InputLabel>
                   <Select 
                     name="category" 
@@ -772,7 +1175,11 @@ function Items() {
               </Grid>
               
               <Grid item xs={12}>
-                <FormControl fullWidth margin="normal">
+                <FormControl 
+                  fullWidth 
+                  margin="normal"
+                  size={{ xs: 'small', sm: 'medium' }}
+                >
                   <InputLabel>Status *</InputLabel>
                   <Select 
                     name="status" 
@@ -792,7 +1199,15 @@ function Items() {
 
               {/* Optional Fields - Collapsible */}
               <Grid item xs={12}>
-                <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, color: 'text.secondary' }}>
+                <Typography 
+                  variant="subtitle2" 
+                  sx={{ 
+                    mt: 2, 
+                    mb: 1, 
+                    color: 'text.secondary',
+                    fontSize: { xs: '0.875rem', sm: '1rem' }
+                  }}
+                >
                   Optional Information
                 </Typography>
               </Grid>
@@ -805,6 +1220,7 @@ function Items() {
                   onChange={handleChange} 
                   fullWidth 
                   margin="normal"
+                  size={{ xs: 'small', sm: 'medium' }}
                 />
               </Grid>
               
@@ -816,6 +1232,7 @@ function Items() {
                   onChange={handleChange} 
                   fullWidth 
                   margin="normal"
+                  size={{ xs: 'small', sm: 'medium' }}
                 />
               </Grid>
 
@@ -828,11 +1245,21 @@ function Items() {
                   fullWidth 
                   margin="normal"
                   helperText="Leave blank to auto-generate from title"
+                  size={{ xs: 'small', sm: 'medium' }}
                 />
               </Grid>
               
               <Grid item xs={12}>
-                <TextField name="notes" label="Notes (Optional)" value={form.notes} onChange={handleChange} fullWidth multiline rows={2} />
+                <TextField 
+                  name="notes" 
+                  label="Notes (Optional)" 
+                  value={form.notes} 
+                  onChange={handleChange} 
+                  fullWidth 
+                  multiline 
+                  rows={{ xs: 2, sm: 3 }}
+                  size={{ xs: 'small', sm: 'medium' }}
+                />
               </Grid>
                 {customFieldsConfig.map((field, idx) => (
                   <Grid item xs={12} key={idx}>
@@ -922,9 +1349,29 @@ function Items() {
             </Grid>
           </form>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDialogClose}>Cancel</Button>
-          <Button type="submit" form="item-form" variant="contained" color="primary">{editingId ? 'Update' : 'Add'}</Button>
+        <DialogActions sx={{ 
+          px: { xs: 2, sm: 3 }, 
+          pb: { xs: 2, sm: 3 },
+          flexDirection: { xs: 'column-reverse', sm: 'row' },
+          gap: { xs: 1, sm: 0 }
+        }}>
+          <Button 
+            onClick={handleDialogClose}
+            fullWidth={{ xs: true, sm: false }}
+            sx={{ minWidth: { sm: 'auto' } }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            form="item-form" 
+            variant="contained" 
+            color="primary"
+            fullWidth={{ xs: true, sm: false }}
+            sx={{ minWidth: { sm: 'auto' } }}
+          >
+            {editingId ? 'Update' : 'Add'}
+          </Button>
         </DialogActions>
       </Dialog>
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>

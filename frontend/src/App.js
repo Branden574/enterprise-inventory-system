@@ -131,7 +131,14 @@ function App() {
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <Router>
         <Navbar token={token} setToken={setToken} />
-        <Box sx={{ maxWidth: '100vw', minHeight: '100vh', bgcolor: '#fff' }}>
+        <Box sx={{ 
+          width: '100%', 
+          minHeight: '100vh', 
+          bgcolor: '#fff',
+          px: { xs: 1, sm: 2, md: 3 }, // Responsive padding
+          py: { xs: 1, sm: 2 }, // Responsive vertical padding
+          overflow: 'hidden' // Prevent horizontal scroll
+        }}>
           <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<AuthPage onLogin={handleLogin} />} />

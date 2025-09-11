@@ -177,7 +177,7 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
       // Standard mappings
       'title': ['title', 'book title', 'book name', 'name'],
       'name': ['name', 'title', 'book title', 'book name'],
-      'isbn13': ['isbn-13', 'isbn13', 'isbn_13', 'isbn 13'],
+      'isbn13': ['isbn-13', 'isbn13', 'isbn_13', 'isbn 13', 'isbn13:', 'isbn-13:', 'isbn_13:', 'isbn 13:'],
       'isbn10': ['isbn-10', 'isbn10', 'isbn_10', 'isbn 10'],
       'category': ['category', 'subject', 'type', 'classification'],
       'cases': ['cases', 'case', 'boxes', 'containers'],
@@ -215,6 +215,14 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
           }
         });
 
+        // Debug logging for first few rows
+        if (rowCount <= 3) {
+          console.log(`\n--- Row ${rowCount} Debug Info ---`);
+          console.log('Available columns:', Object.keys(row));
+          console.log('Mapped data:', mappedData);
+          console.log('ISBN-13 specifically:', mappedData.isbn13);
+        }
+
         // Validate required fields
         if (!mappedData.title && !mappedData.name) {
           errors.push(`Row ${rowCount}: Title or Name is required`);
@@ -236,10 +244,10 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
           title: mappedData.title || mappedData.name,
           isbn13: mappedData.isbn13 || '',
           isbn10: mappedData.isbn10 || '',
-          cases: parseInt(mappedData.cases) || 0,
-          caseQty: parseInt(mappedData.caseQty) || 0,
+          cases: 0, // Always set to 0 - we don't use cases
+          caseQty: 0, // Always set to 0 - we don't use cases  
           quantity: parseInt(mappedData.quantity) || 0,
-          total: parseInt(mappedData.total) || (parseInt(mappedData.cases) || 0) * (parseInt(mappedData.caseQty) || 0),
+          total: parseInt(mappedData.quantity) || 0, // Use quantity as total
           location: mappedData.location || '',
           status: mappedData.status || 'active',
           statusColor: mappedData.statusColor || '',

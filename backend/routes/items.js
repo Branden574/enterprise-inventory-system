@@ -14,8 +14,9 @@ const upload = multer({
   storage: memoryStorage, // Store in memory first, then upload to Cloudinary manually
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit for Railway
-    fieldSize: 1 * 1024 * 1024, // 1MB field limit
-    parts: 10 // Limit form parts
+    fieldSize: 2 * 1024 * 1024, // 2MB field limit (increased)
+    fields: 20, // Increased field limit
+    parts: 25 // Increased parts limit to accommodate book fields
   },
   fileFilter: (req, file, cb) => {
     console.log('🔍 File filter check:', {
@@ -816,6 +817,37 @@ router.get('/test-cloudinary-config', async (req, res) => {
       error: error.message,
       stack: error.stack
     });
+  }
+});
+
+// Bulk delete all items - SuperAdmin only
+router.delete('/bulk/all', authenticateToken, async (req, res) => {
+  try {
+    // Check if user is superadmin
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied. SuperAdmin privileges required.' });
+    }
+
+    // Delete all items
+    const result = await Item.deleteMany({});
+    
+    // Log the action
+    await AuditLog.create({
+      action: 'BULK_DELETE_ALL',
+      entityType: 'Item',
+      entityId: null,
+      userId: req.user.id,
+      changes: { deletedCount: result.deletedCount },
+      ipAddress: req.ip
+    });
+
+    res.json({ 
+      message: `Successfully deleted ${result.deletedCount} items`,
+      deletedCount: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Bulk delete all error:', error);
+    res.status(500).json({ error: 'Failed to delete all items' });
   }
 });
 
