@@ -38,7 +38,7 @@ router.post('/', authenticateToken, async (req, res) => {
     
     // Clear categories cache since we added a new one
     const cacheKey = cacheManager.generateCategoriesKey();
-    cacheManager.del(cacheKey);
+    cacheManager.delete(cacheKey);
     
     // Log category creation
     await auditLogger.logCategoryChange('CREATE', category, req.user, {}, {}, req);
@@ -72,7 +72,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     
     // Clear categories cache since we updated a category
     const cacheKey = cacheManager.generateCategoriesKey();
-    cacheManager.del(cacheKey);
+    cacheManager.delete(cacheKey);
     
     // Log category update
     await auditLogger.logCategoryChange('UPDATE', category, req.user, changes, oldValues, req);
@@ -95,7 +95,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     
     // Clear categories cache since we deleted a category
     const cacheKey = cacheManager.generateCategoriesKey();
-    cacheManager.del(cacheKey);
+    cacheManager.delete(cacheKey);
     
     // Log category deletion
     await auditLogger.logCategoryChange('DELETE', category, req.user, {}, {}, req);
