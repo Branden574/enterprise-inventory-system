@@ -151,7 +151,7 @@ function App() {
           <Route path="/dashboard" element={token ? <Dashboard /> : <ProtectedMessage tab="Dashboard" />} />
           
           {/* Inventory Management */}
-          <Route path="/items" element={token ? <DebugItems token={token} /> : <ProtectedMessage tab="Items" />} />
+          <Route path="/items" element={token ? <ItemsMinimal token={token} /> : <ProtectedMessage tab="Items" />} />
           <Route path="/categories" element={token ? <Categories token={token} /> : <ProtectedMessage tab="Categories" />} />
           
           {/* Purchase Orders */}
