@@ -164,12 +164,14 @@ function AdminInternalOrders() {
   };
 
   const getTotalQuantity = (items) => {
-    return items.reduce((total, item) => total + item.requestedQuantity, 0);
+    if (!Array.isArray(items)) return 0;
+    return items.reduce((total, item) => total + (item.requestedQuantity || 0), 0);
   };
 
   const checkStockAvailability = (items) => {
+    if (!Array.isArray(items)) return false;
     for (const item of items) {
-      if (item.requestedQuantity > item.item.quantity) {
+      if (!item.item || (item.requestedQuantity || 0) > (item.item.quantity || 0)) {
         return false;
       }
     }
@@ -185,8 +187,8 @@ function AdminInternalOrders() {
   }
 
   const filteredOrders = currentTab === 0 
-    ? orders.filter(order => order.status === 'pending')
-    : orders;
+    ? orders.filter(order => order && order.status === 'pending')
+    : orders.filter(order => order != null);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -202,8 +204,8 @@ function AdminInternalOrders() {
       {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={currentTab} onChange={handleTabChange}>
-          <Tab label={`Pending Requests (${orders.filter(o => o.status === 'pending').length})`} />
-          <Tab label={`All Orders (${orders.length})`} />
+          <Tab label={`Pending Requests (${Array.isArray(orders) ? orders.filter(o => o?.status === 'pending').length : 0})`} />
+          <Tab label={`All Orders (${Array.isArray(orders) ? orders.length : 0})`} />
         </Tabs>
       </Box>
 
@@ -213,13 +215,7 @@ function AdminInternalOrders() {
         </Alert>
       )}
 
-      {loading ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="h6" color="text.secondary">
-            Loading internal orders...
-          </Typography>
-        </Paper>
-      ) : filteredOrders.length === 0 ? (
+      {filteredOrders.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="h6" color="text.secondary">
             {currentTab === 0 ? 'No pending requests' : 'No internal orders found'}
@@ -250,23 +246,31 @@ function AdminInternalOrders() {
             </TableHead>
             <TableBody>
               {filteredOrders.map((order) => {
+                // Safety check - skip if order is null or missing required properties
+                if (!order || !order._id || !order.items || !Array.isArray(order.items)) {
+                  return null;
+                }
+                
                 const hasStock = checkStockAvailability(order.items);
                 return (
                   <TableRow key={order._id} hover>
                     <TableCell>
                       <Typography variant="body2" fontWeight="bold">
-                        {order.orderNumber}
+                        {order.orderNumber || 'N/A'}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{order.requesterName}</Typography>
+                      <Typography variant="body2">{order.requesterName || 'N/A'}</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        by {order.requestedBy?.username}
+                        by {order.requestedBy?.username || 'Unknown'}
                       </Typography>
                     </TableCell>
-                    <TableCell>{order.deliverySite}</TableCell>
+                    <TableCell>{order.deliverySite || 'N/A'}</TableCell>
                     <TableCell>
-                      {new Date(order.requestedDeliveryDate).toLocaleDateString()}
+                      {order.requestedDeliveryDate 
+                        ? new Date(order.requestedDeliveryDate).toLocaleDateString()
+                        : 'N/A'
+                      }
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
@@ -279,7 +283,7 @@ function AdminInternalOrders() {
                     <TableCell>{order.department || 'N/A'}</TableCell>
                     <TableCell>
                       <Chip 
-                        label={order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        label={order.status ? order.status.charAt(0).toUpperCase() + order.status.slice(1) : 'Unknown'}
                         color={getStatusColor(order.status)}
                         size="small"
                       />
@@ -294,7 +298,10 @@ function AdminInternalOrders() {
                       </TableCell>
                     )}
                     <TableCell>
-                      {new Date(order.createdAt).toLocaleDateString()}
+                      {order.createdAt 
+                        ? new Date(order.createdAt).toLocaleDateString()
+                        : 'N/A'
+                      }
                     </TableCell>
                     <TableCell align="center">
                       {order.status === 'pending' && (
@@ -330,7 +337,7 @@ function AdminInternalOrders() {
                     </TableCell>
                   </TableRow>
                 );
-              })}
+              }).filter(Boolean)}
             </TableBody>
           </Table>
         </TableContainer>
