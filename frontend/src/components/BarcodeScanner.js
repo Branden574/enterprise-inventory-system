@@ -14,22 +14,37 @@ import {
 } from '@mui/material';
 import { Close as CloseIcon, CameraAlt as CameraIcon } from '@mui/icons-material';
 
-// Dynamically import Quagga to handle loading errors
-let Quagga = null;
-try {
-  Quagga = require('quagga');
-} catch (error) {
-  console.warn('Quagga library not available:', error);
-}
-
 const BarcodeScanner = ({ open, onClose, onScanResult, title = "Scan Barcode" }) => {
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState('');
   const [manualCode, setManualCode] = useState('');
   const scannerRef = useRef(null);
 
+  // Safely import Quagga
+  const [Quagga, setQuagga] = useState(null);
+  const [libraryLoaded, setLibraryLoaded] = useState(false);
+
   useEffect(() => {
-    if (open && scanning) {
+    // Dynamically import Quagga
+    const loadQuagga = async () => {
+      try {
+        const QuaggaLib = await import('quagga');
+        setQuagga(QuaggaLib.default || QuaggaLib);
+        setLibraryLoaded(true);
+      } catch (error) {
+        console.warn('Quagga library not available:', error);
+        setError('Barcode scanner library not available. Please use manual entry.');
+        setLibraryLoaded(false);
+      }
+    };
+
+    if (open) {
+      loadQuagga();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (open && scanning && Quagga && libraryLoaded) {
       startScanner();
     }
     return () => {
@@ -39,7 +54,7 @@ const BarcodeScanner = ({ open, onClose, onScanResult, title = "Scan Barcode" })
         console.warn('Error in cleanup:', error);
       }
     };
-  }, [open, scanning]);
+  }, [open, scanning, Quagga, libraryLoaded]);
 
   const startScanner = () => {
     if (!scannerRef.current) {
@@ -130,7 +145,7 @@ const BarcodeScanner = ({ open, onClose, onScanResult, title = "Scan Barcode" })
 
   const handleStartScanning = () => {
     setError('');
-    if (!Quagga) {
+    if (!Quagga || !libraryLoaded) {
       setError('Barcode scanner library not available. Please use manual entry.');
       return;
     }
@@ -161,6 +176,7 @@ const BarcodeScanner = ({ open, onClose, onScanResult, title = "Scan Barcode" })
     }
     setManualCode('');
     setError('');
+    setScanning(false);
     onClose();
   };
 
@@ -207,8 +223,9 @@ const BarcodeScanner = ({ open, onClose, onScanResult, title = "Scan Barcode" })
                 variant="contained" 
                 startIcon={<CameraIcon />}
                 onClick={handleStartScanning}
+                disabled={!libraryLoaded}
               >
-                Start Camera
+                {libraryLoaded ? 'Start Camera' : 'Loading Scanner...'}
               </Button>
             </Box>
           ) : (
