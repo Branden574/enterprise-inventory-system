@@ -310,7 +310,18 @@ async function handleWithoutImageUpload(req, res) {
       barcode,
       customFields,
       location,
-      notes
+      notes,
+      // Book-specific fields
+      isbn13,
+      isbn10,
+      title,
+      publisher,
+      edition,
+      status,
+      subject,
+      gradeLevel,
+      minimumQuantity,
+      alertEnabled
     } = req.body;
 
     if (!name) {
@@ -327,7 +338,18 @@ async function handleWithoutImageUpload(req, res) {
       location,
       notes,
       customFields: customFields || {},
-      createdBy: req.user.id
+      createdBy: req.user.id,
+      // Book-specific fields
+      isbn13: isbn13 || undefined,
+      isbn10: isbn10 || undefined,
+      title: title || undefined,
+      publisher: publisher || undefined,
+      edition: edition || undefined,
+      status: status || 'available',
+      subject: subject || undefined,
+      gradeLevel: gradeLevel || undefined,
+      minimumQuantity: parseInt(minimumQuantity) || 0,
+      alertEnabled: alertEnabled !== undefined ? alertEnabled : true
     };
 
     console.log('💾 Saving item to database (no image)...');
@@ -396,7 +418,18 @@ async function handleItemCreation(req, res) {
       barcode,
       customFields,
       location,
-      notes
+      notes,
+      // Book-specific fields
+      isbn13,
+      isbn10,
+      title,
+      publisher,
+      edition,
+      status,
+      subject,
+      gradeLevel,
+      minimumQuantity,
+      alertEnabled
     } = req.body;
 
     // Validate required fields
@@ -427,7 +460,18 @@ async function handleItemCreation(req, res) {
       location,
       notes,
       customFields: parsedCustomFields,
-      createdBy: req.user.id
+      createdBy: req.user.id,
+      // Book-specific fields
+      isbn13: isbn13 || undefined,
+      isbn10: isbn10 || undefined,
+      title: title || undefined,
+      publisher: publisher || undefined,
+      edition: edition || undefined,
+      status: status || 'available',
+      subject: subject || undefined,
+      gradeLevel: gradeLevel || undefined,
+      minimumQuantity: parseInt(minimumQuantity) || 0,
+      alertEnabled: alertEnabled !== undefined ? alertEnabled : true
     };
 
     // Handle Cloudinary upload manually if there's a file
@@ -551,7 +595,20 @@ router.put('/:id', authenticateToken, upload.single('photo'), async (req, res) =
       quantity,
       lowStockThreshold,
       barcode,
-      customFields
+      customFields,
+      // Book-specific fields
+      isbn13,
+      isbn10,
+      title,
+      publisher,
+      edition,
+      status,
+      subject,
+      gradeLevel,
+      location,
+      notes,
+      minimumQuantity,
+      alertEnabled
     } = req.body;
 
     // Parse customFields if it's a string
@@ -574,7 +631,20 @@ router.put('/:id', authenticateToken, upload.single('photo'), async (req, res) =
       quantity: quantity !== undefined ? parseInt(quantity) : existingItem.quantity,
       lowStockThreshold: lowStockThreshold !== undefined ? parseInt(lowStockThreshold) : existingItem.lowStockThreshold,
       barcode: barcode || existingItem.barcode,
-      customFields: parsedCustomFields
+      customFields: parsedCustomFields,
+      // Book-specific fields
+      isbn13: isbn13 || existingItem.isbn13,
+      isbn10: isbn10 || existingItem.isbn10,
+      title: title || existingItem.title,
+      publisher: publisher || existingItem.publisher,
+      edition: edition || existingItem.edition,
+      status: status || existingItem.status,
+      subject: subject || existingItem.subject,
+      gradeLevel: gradeLevel || existingItem.gradeLevel,
+      location: location || existingItem.location,
+      notes: notes || existingItem.notes,
+      minimumQuantity: minimumQuantity !== undefined ? parseInt(minimumQuantity) : existingItem.minimumQuantity,
+      alertEnabled: alertEnabled !== undefined ? alertEnabled : existingItem.alertEnabled
     };
 
     // Handle new image upload
