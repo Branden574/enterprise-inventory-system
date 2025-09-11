@@ -191,7 +191,7 @@ function Items() {
     }
     
     // Custom fields validation
-    customFieldsConfig.forEach(field => {
+    customFieldsConfig.filter(field => field && field.type).forEach(field => {
       const value = form.customFields[field.name];
       if (field.required && !value) {
         errors[`customField_${field.name}`] = `${field.name} is required`;
@@ -339,7 +339,7 @@ function Items() {
       
       // Reset form with default values for custom fields
       const defaultCustomFields = {};
-      customFieldsConfig.forEach(field => {
+      customFieldsConfig.filter(field => field && field.name).forEach(field => {
         if (field.defaultValue) {
           defaultCustomFields[field.name] = field.defaultValue;
         }
@@ -517,7 +517,7 @@ function Items() {
   const handleAddClick = () => {
     // Initialize custom fields with their default values
     const defaultCustomFields = {};
-    customFieldsConfig.forEach(field => {
+    customFieldsConfig.filter(field => field && field.name).forEach(field => {
       if (field.defaultValue) {
         defaultCustomFields[field.name] = field.defaultValue;
       }
@@ -1262,7 +1262,7 @@ function Items() {
                   size={{ xs: 'small', sm: 'medium' }}
                 />
               </Grid>
-                {customFieldsConfig.map((field, idx) => (
+                {customFieldsConfig.filter(field => field && field.type).map((field, idx) => (
                   <Grid item xs={12} key={idx}>
                     {field.type === 'text' && (
                       <TextField
