@@ -532,6 +532,8 @@ function Items() {
   const handleAddClick = () => {
     console.log('🔥 handleAddClick called!');
     console.log('🔥 openTypeSelector before:', openTypeSelector);
+    console.log('🔥 Current itemType state:', itemType);
+    console.log('🔥 Current openDialog state:', openDialog);
     setOpenTypeSelector(true);
     console.log('🔥 setOpenTypeSelector(true) called');
   };
@@ -560,6 +562,7 @@ function Items() {
     });
     setImagePreview(null);
     setEditingId(null);
+    // Open the main dialog with the selected type
     setOpenDialog(true);
   };
 
@@ -1149,6 +1152,7 @@ function Items() {
           {editingId ? `Edit ${itemType === 'book' ? 'Book' : 'Item'}` : `Add ${itemType === 'book' ? 'Book' : 'Item'}`}
         </DialogTitle>
         <DialogContent sx={{ px: { xs: 2, sm: 3 } }}>
+          {console.log('🔥 Main dialog rendering with itemType:', itemType, 'openDialog:', openDialog)}
           <form id="item-form" onSubmit={handleSubmit} encType="multipart/form-data">
             <Grid container spacing={{ xs: 1, sm: 2 }} alignItems="center">
               {/* Essential Fields */}
