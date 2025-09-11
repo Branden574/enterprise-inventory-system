@@ -1128,9 +1128,9 @@ function Items() {
               {/* Essential Fields */}
               <Grid item xs={12}>
                 <TextField 
-                  name="title" 
-                  label="Book Title *" 
-                  value={form.title || ''} 
+                  name="name" 
+                  label="Item Name *" 
+                  value={form.name || form.title || ''} 
                   onChange={handleChange} 
                   required
                   fullWidth 
@@ -1139,21 +1139,7 @@ function Items() {
                 />
               </Grid>
               
-              <Grid item xs={12} sm={8}>
-                <TextField 
-                  name="isbn13" 
-                  label="ISBN-13 *" 
-                  value={form.isbn13 || ''} 
-                  onChange={handleChange} 
-                  required
-                  fullWidth 
-                  margin="normal"
-                  placeholder="978-1-234-56789-0"
-                  size={{ xs: 'small', sm: 'medium' }}
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={6}>
                 <TextField 
                   name="quantity" 
                   label="Quantity *" 
@@ -1215,19 +1201,18 @@ function Items() {
                 </FormControl>
               </Grid>
               
-              <Grid item xs={12}>
+              <Grid item xs={12} sm={6}>
                 <FormControl 
                   fullWidth 
                   margin="normal"
                   size={{ xs: 'small', sm: 'medium' }}
                 >
-                  <InputLabel>Status *</InputLabel>
+                  <InputLabel>Status</InputLabel>
                   <Select 
                     name="status" 
-                    value={form.status || ''} 
+                    value={form.status || 'available'} 
                     onChange={handleChange} 
                     label="Status"
-                    required
                   >
                     <MenuItem value="available">Available</MenuItem>
                     <MenuItem value="low-stock">Low Stock</MenuItem>
@@ -1249,56 +1234,102 @@ function Items() {
                     fontSize: { xs: '0.875rem', sm: '1rem' }
                   }}
                 >
-                  Optional Information
+                  Additional Information (Optional)
                 </Typography>
               </Grid>
               
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12}>
                 <TextField 
-                  name="publisher" 
-                  label="Publisher (Optional)" 
-                  value={form.publisher || ''} 
+                  name="description" 
+                  label="Description" 
+                  value={form.description || ''} 
                   onChange={handleChange} 
                   fullWidth 
-                  margin="normal"
-                  size={{ xs: 'small', sm: 'medium' }}
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={6}>
-                <TextField 
-                  name="edition" 
-                  label="Edition (Optional)" 
-                  value={form.edition || ''} 
-                  onChange={handleChange} 
-                  fullWidth 
+                  multiline 
+                  rows={{ xs: 2, sm: 3 }}
                   margin="normal"
                   size={{ xs: 'small', sm: 'medium' }}
                 />
               </Grid>
 
-              <Grid item xs={12}>
-                <TextField 
-                  name="name" 
-                  label="Internal Name (Optional)" 
-                  value={form.name || ''} 
-                  onChange={handleChange} 
-                  fullWidth 
-                  margin="normal"
-                  helperText="Leave blank to auto-generate from title"
-                  size={{ xs: 'small', sm: 'medium' }}
-                />
-              </Grid>
+              {/* Book-specific fields - Only show if it's a book or has ISBN */}
+              {(form.isbn13 || form.isbn10 || form.title || (form.category && categories.find(c => c._id === form.category)?.name?.toLowerCase().includes('book'))) && (
+                <>
+                  <Grid item xs={12}>
+                    <Typography 
+                      variant="subtitle2" 
+                      sx={{ 
+                        mt: 1, 
+                        mb: 1, 
+                        color: 'primary.main',
+                        fontSize: { xs: '0.875rem', sm: '1rem' }
+                      }}
+                    >
+                      Book Information
+                    </Typography>
+                  </Grid>
+                  
+                  <Grid item xs={12}>
+                    <TextField 
+                      name="title" 
+                      label="Book Title" 
+                      value={form.title || ''} 
+                      onChange={handleChange} 
+                      fullWidth 
+                      margin="normal"
+                      size={{ xs: 'small', sm: 'medium' }}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6}>
+                    <TextField 
+                      name="isbn13" 
+                      label="ISBN-13" 
+                      value={form.isbn13 || ''} 
+                      onChange={handleChange} 
+                      fullWidth 
+                      margin="normal"
+                      placeholder="978-1-234-56789-0"
+                      size={{ xs: 'small', sm: 'medium' }}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6}>
+                    <TextField 
+                      name="publisher" 
+                      label="Publisher" 
+                      value={form.publisher || ''} 
+                      onChange={handleChange} 
+                      fullWidth 
+                      margin="normal"
+                      size={{ xs: 'small', sm: 'medium' }}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6}>
+                    <TextField 
+                      name="edition" 
+                      label="Edition" 
+                      value={form.edition || ''} 
+                      onChange={handleChange} 
+                      fullWidth 
+                      margin="normal"
+                      size={{ xs: 'small', sm: 'medium' }}
+                    />
+                  </Grid>
+                </>
+              )}
               
               <Grid item xs={12}>
                 <TextField 
                   name="notes" 
-                  label="Notes (Optional)" 
+                  label="Notes" 
                   value={form.notes || ''} 
                   onChange={handleChange} 
                   fullWidth 
                   multiline 
                   rows={{ xs: 2, sm: 3 }}
+                  margin="normal"
                   size={{ xs: 'small', sm: 'medium' }}
                 />
               </Grid>
@@ -1354,6 +1385,11 @@ function Items() {
                 ))}
               <Grid item xs={12}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {/* DEBUG INFO - Remove this after testing */}
+                  <Typography variant="caption" sx={{ color: 'red', backgroundColor: 'yellow', p: 1 }}>
+                    DEBUG: editingId={editingId ? 'YES' : 'NO'} | form.photo={form.photo ? 'YES' : 'NO'} | imagePreview={imagePreview ? 'YES' : 'NO'}
+                  </Typography>
+                  
                   <Button variant="contained" component="label" fullWidth>
                     {editingId && form.photo ? 'Replace Image' : 'Upload Image'}
                     <input name="photo" type="file" accept="image/*" hidden onChange={handleChange} />
