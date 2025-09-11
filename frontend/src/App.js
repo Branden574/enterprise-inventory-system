@@ -99,7 +99,29 @@ function AuthPage({ onLogin }) {
 function App() {
   const [token, setToken] = useState(() => {
     const remembered = localStorage.getItem('rememberMe') === 'true';
-    return remembered ? localStorage.getItem('token') : sessionStorage.getItem('token') || '';
+    const storedToken = remembered ? localStorage.getItem('token') : sessionStorage.getItem('token') || '';
+    
+    // If we have a token, validate it immediately to prevent infinite loops
+    if (storedToken) {
+      // Try to decode the token to check if it's valid format
+      try {
+        const payload = JSON.parse(atob(storedToken.split('.')[1]));
+        // Check if token is expired
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
+          console.log('Token expired on startup, clearing...');
+          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
+          return '';
+        }
+      } catch (e) {
+        console.log('Invalid token format on startup, clearing...');
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
+        return '';
+      }
+    }
+    
+    return storedToken;
   });
   const [loginSnackbar, setLoginSnackbar] = useState(false);
 
@@ -152,6 +174,20 @@ function App() {
     }
     setLoginSnackbar(true);
   };
+
+  // Function to clear all authentication data
+  const clearAuthData = () => {
+    setToken('');
+    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
+    localStorage.removeItem('role');
+    sessionStorage.removeItem('role');
+    localStorage.removeItem('rememberMe');
+    notificationService.disconnect();
+  };
+
+  // Expose clearAuthData globally for axios interceptor
+  window.clearAuthData = clearAuthData;
 
   return (
     <ThemeProvider theme={theme}>

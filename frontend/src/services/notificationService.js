@@ -68,6 +68,17 @@ class NotificationService {
         });
       });
 
+      this.socket.on('internal-order-created', (data) => {
+        this.notifyListeners({
+          type: 'internal-order-created',
+          title: '📋 New Internal Order',
+          message: `Internal Order #${data.orderNumber} created by ${data.requestedBy || 'Unknown User'}`,
+          severity: 'info',
+          timestamp: new Date(data.timestamp),
+          data: data
+        });
+      });
+
       this.socket.on('order-status-update', (data) => {
         const statusMessages = {
           approved: '✅ Order Approved',

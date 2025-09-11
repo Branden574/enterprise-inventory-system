@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clearing Authentication Data...</title>
+</head>
+<body>
+    <h2>Clearing old authentication data...</h2>
+    <p>Please wait while we clear old tokens...</p>
+    
+    <script>
+        // Clear all possible token storage locations
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Clear cookies if any
+        document.cookie.split(";").forEach(function(c) { 
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        });
+        
+        console.log('All authentication data cleared');
+        
+        // Redirect to login after clearing
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 1000);
+    </script>
+</body>
+</html>

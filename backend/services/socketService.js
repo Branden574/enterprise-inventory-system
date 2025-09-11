@@ -204,6 +204,26 @@ class SocketService {
     console.log(`🛒 New order notification sent: ${orderData.orderNumber}`);
   }
 
+  // Notify when new internal order is created
+  notifyNewInternalOrder(orderData) {
+    const notification = {
+      type: 'internal-order-created',
+      orderNumber: orderData.orderNumber,
+      createdBy: orderData.userId,
+      items: orderData.items || [],
+      departmentCode: orderData.departmentCode || 'N/A',
+      requestedBy: orderData.requestedBy,
+      timestamp: new Date()
+    };
+
+    // Send to all admins and tech admins
+    this.io.to('role-admin').emit('internal-order-created', notification);
+    this.io.to('role-superadmin').emit('internal-order-created', notification);
+    this.io.to('role-techadmin').emit('internal-order-created', notification);
+
+    console.log(`📋 New internal order notification sent: ${orderData.orderNumber}`);
+  }
+
   // Send system-wide alert
   sendSystemAlert(message, severity = 'info') {
     const notification = {

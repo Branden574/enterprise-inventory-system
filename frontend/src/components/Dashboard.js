@@ -133,7 +133,8 @@ function Dashboard() {
       });
 
     } catch (err) {
-      setError('Failed to load dashboard data');
+      console.error('Dashboard data fetch error:', err);
+      setError(`Failed to load dashboard data: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -354,7 +355,7 @@ function Dashboard() {
 
         {/* Top Categories */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2, height: 400 }}>
+          <Paper sx={{ p: 2, height: 400, display: 'flex', flexDirection: 'column' }}>
             <Typography variant="h6" gutterBottom>
               Top Categories
             </Typography>
@@ -365,24 +366,26 @@ function Dashboard() {
                 </Typography>
               </Box>
             ) : (
-              <List>
-                {dashboardData.topCategories.map((category, index) => (
-                  <ListItem key={category.name} divider>
-                    <ListItemIcon>
-                      <TrendingUpIcon color="primary" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={category.name}
-                      secondary={`${category.count} items`}
-                    />
-                    <Chip
-                      label={`#${index + 1}`}
-                      color="primary"
-                      size="small"
-                    />
-                  </ListItem>
-                ))}
-              </List>
+              <Box sx={{ flex: 1, overflow: 'auto' }}>
+                <List>
+                  {dashboardData.topCategories.map((category, index) => (
+                    <ListItem key={category.name} divider>
+                      <ListItemIcon>
+                        <TrendingUpIcon color="primary" />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={category.name}
+                        secondary={`${category.count} items`}
+                      />
+                      <Chip
+                        label={`#${index + 1}`}
+                        color="primary"
+                        size="small"
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
             )}
           </Paper>
         </Grid>

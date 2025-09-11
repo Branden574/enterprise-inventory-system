@@ -187,6 +187,28 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Refresh Token - Generate new token for authenticated users
+router.post('/refresh-token', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Generate new token with fresh expiration
+    const newToken = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    
+    console.log(`🔄 Token refreshed for user ${user.email}`);
+    res.json({ 
+      token: newToken,
+      role: user.role 
+    });
+  } catch (err) {
+    console.error('Token refresh error:', err);
+    res.status(400).json({ error: 'Failed to refresh token' });
+  }
+});
+
 // Change Password
 router.post('/change-password', authenticateToken, async (req, res) => {
   try {

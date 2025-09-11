@@ -87,16 +87,12 @@ const NotificationBell = () => {
       setTimeout(() => setHasNewNotification(false), 3000);
     };
 
-    // Subscribe to notification events
-    notificationService.onLowStock(handleNewNotification);
-    notificationService.onItemAdded(handleNewNotification);
-    notificationService.onNewPurchaseOrder(handleNewNotification);
-    notificationService.onNewInternalOrder(handleNewNotification);
-    notificationService.onOrderStatusChange(handleNewNotification);
-    notificationService.onInternalOrderStatusChange(handleNewNotification);
+    // Subscribe to all notification events
+    const unsubscribe = notificationService.addListener(handleNewNotification);
 
     return () => {
-      // Cleanup listeners would go here if the service had removeListener methods
+      // Cleanup listener
+      unsubscribe();
     };
   }, []);
 
