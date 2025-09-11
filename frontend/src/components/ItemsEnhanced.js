@@ -5,7 +5,7 @@ import {
   Button, TextField, Select, MenuItem, InputLabel, FormControl, 
   Card, CardContent, CardActions, Typography, Grid, IconButton, 
   Dialog, DialogTitle, DialogContent, DialogActions, Fab, 
-  Snackbar, Alert, Box, Pagination, CircularProgress
+  Snackbar, Alert, Box, Pagination, CircularProgress, Checkbox
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -39,9 +39,13 @@ function ItemsEnhanced() {
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const itemsPerPage = 30;
   
   const [userRole, setUserRole] = useState(null);
+  
+  // Bulk selection state
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
 
   // Decode JWT to get user role
   const getUserRole = () => {
@@ -281,6 +285,67 @@ function ItemsEnhanced() {
     }
   };
 
+  // Bulk delete functionality
+  const handleBulkDelete = async () => {
+    if (selectedItems.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedItems.length} item(s)?`)) return;
+    
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      console.log('🗑️ Bulk deleting items:', selectedItems);
+      
+      // Delete items in parallel
+      await Promise.all(
+        selectedItems.map(id => 
+          axios.delete(`/api/items/${id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        )
+      );
+      
+      console.log('✅ Items deleted');
+      setSnackbar({ open: true, message: `${selectedItems.length} items deleted!`, severity: 'success' });
+      setSelectedItems([]);
+      setSelectAll(false);
+      fetchItems();
+    } catch (err) {
+      console.error('❌ Bulk delete error:', err);
+      setSnackbar({ 
+        open: true, 
+        message: 'Failed to delete some items', 
+        severity: 'error' 
+      });
+    }
+  };
+
+  // Selection handlers
+  const handleSelectItem = (id) => {
+    setSelectedItems(prev => 
+      prev.includes(id) 
+        ? prev.filter(itemId => itemId !== id)
+        : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = (currentPageItems) => {
+    if (selectAll) {
+      // Deselect all items on current page
+      setSelectedItems(prev => 
+        prev.filter(id => !currentPageItems.some(item => item._id === id))
+      );
+      setSelectAll(false);
+    } else {
+      // Select all items on current page
+      const pageItemIds = currentPageItems.map(item => item._id);
+      setSelectedItems(prev => [...new Set([...prev, ...pageItemIds])]);
+      setSelectAll(true);
+    }
+  };
+
   const handleAddClick = () => {
     console.log('➕ Adding new item');
     setForm({ 
@@ -402,6 +467,43 @@ function ItemsEnhanced() {
         </Box>
       </Box>
       
+      {/* Bulk Selection Controls */}
+      {sortedItems.length > 0 && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <Checkbox
+            checked={selectAll}
+            onChange={() => handleSelectAll(paginatedItems)}
+            indeterminate={selectedItems.length > 0 && selectedItems.length < paginatedItems.length}
+          />
+          <Typography variant="body2" color="text.secondary">
+            Select All on Page
+          </Typography>
+          {selectedItems.length > 0 && (
+            <>
+              <Typography variant="body2" color="primary">
+                {selectedItems.length} selected
+              </Typography>
+              <Button
+                variant="outlined"
+                color="error"
+                size="small"
+                startIcon={<DeleteIcon />}
+                onClick={handleBulkDelete}
+              >
+                Delete Selected
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => { setSelectedItems([]); setSelectAll(false); }}
+              >
+                Clear Selection
+              </Button>
+            </>
+          )}
+        </Box>
+      )}
+      
       {/* Results Info */}
       {sortedItems.length === 0 ? (
         <Box sx={{ textAlign: 'center', mt: 8 }}>
@@ -429,8 +531,23 @@ function ItemsEnhanced() {
                   display: 'flex', 
                   flexDirection: 'column',
                   transition: '0.2s',
-                  '&:hover': { transform: 'translateY(-2px)', boxShadow: 4 }
+                  '&:hover': { transform: 'translateY(-2px)', boxShadow: 4 },
+                  position: 'relative'
                 }}>
+                  {/* Selection Checkbox */}
+                  <Checkbox
+                    checked={selectedItems.includes(item._id)}
+                    onChange={() => handleSelectItem(item._id)}
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      zIndex: 1,
+                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                      borderRadius: '50%',
+                      '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.9)' }
+                    }}
+                  />
                   <CardContent sx={{ flexGrow: 1 }}>
                     {item.photo && (
                       <Box sx={{ textAlign: 'center', mb: 2 }}>
