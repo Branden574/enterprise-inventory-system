@@ -57,9 +57,9 @@ function ImportExport() {
         // Partial success with errors
         setErrors(response.data.errors);
         setShowErrors(true);
-        setSuccessMessage('Import completed with some errors');
+        setSuccessMessage('Import completed with some errors. Please refresh the Items page to see updates.');
       } else {
-        setSuccessMessage('Import completed successfully');
+        setSuccessMessage('Import completed successfully! Please refresh the Items page to see the imported items with ISBN numbers.');
       }
     } catch (err) {
       setErrors([err.response?.data?.error || 'Error importing data']);
