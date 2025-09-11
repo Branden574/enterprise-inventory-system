@@ -29,7 +29,7 @@
     "@testing-library/jest-dom": "^6.8.0",
     "react-scripts": "^5.0.0"
   },
-  "homepage": ".",
+  "homepage": "/",
   "browserslist": {
     "production": [
       ">0.2%",

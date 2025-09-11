@@ -201,8 +201,27 @@ const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/uploads/completed-pos', express.static(path.join(__dirname, 'uploads/completed-pos')));
 
-// Serve static frontend files
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static frontend files with proper MIME types
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    } else if (path.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    } else if (path.endsWith('.html')) {
+      res.setHeader('Content-Type', 'text/html');
+    }
+  }
+}));
+
+// Explicitly serve static JS files to ensure proper MIME type
+app.use('/static', express.static(path.join(__dirname, 'public/static'), {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript');
+    }
+  }
+}));
 
 // Routes
 app.get('/', (req, res) => {
