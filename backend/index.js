@@ -304,7 +304,6 @@ app.use('/api/*', (req, res) => {
 
 
 // Serve React app for all other routes (SPA support)
-const path = require('path');
 app.get('*', (req, res) => {
   // Only serve index.html for non-API, non-static requests
   if (!req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
