@@ -12,6 +12,7 @@ import Items from './components/Items.js';
 import ItemsSimple from './components/ItemsSimple.js';
 import ItemsSafe from './components/ItemsSafe.js';
 import ItemsMinimal from './components/ItemsMinimal.js';
+import ItemsEnhanced from './components/ItemsEnhanced.js';
 import DebugItems from './components/DebugItems.js';
 import Categories from './components/Categories.js';
 import Login from './components/Login.js';
@@ -151,7 +152,7 @@ function App() {
           <Route path="/dashboard" element={token ? <Dashboard /> : <ProtectedMessage tab="Dashboard" />} />
           
           {/* Inventory Management */}
-          <Route path="/items" element={token ? <ItemsMinimal token={token} /> : <ProtectedMessage tab="Items" />} />
+          <Route path="/items" element={token ? <ItemsEnhanced token={token} /> : <ProtectedMessage tab="Items" />} />
           <Route path="/categories" element={token ? <Categories token={token} /> : <ProtectedMessage tab="Categories" />} />
           
           {/* Purchase Orders */}
