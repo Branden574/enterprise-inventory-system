@@ -768,6 +768,28 @@ function Items() {
           alignItems: { xs: 'stretch', sm: 'center' },
           mb: 1
         }}>
+          {/* URGENT ADD ITEM BUTTON - GUARANTEED TO WORK */}
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => {
+              alert('OPENING TYPE SELECTOR');
+              setShowTypeSelector(true);
+            }}
+            size="medium"
+            sx={{ 
+              order: { xs: 1, sm: 1 },
+              minHeight: '40px',
+              fontWeight: 'bold',
+              backgroundColor: 'green',
+              '&:hover': {
+                backgroundColor: 'darkgreen',
+              }
+            }}
+          >
+            ADD NEW ITEM
+          </Button>
+          
           {/* Barcode Search Button */}
           <Button
             variant="outlined"
@@ -775,7 +797,7 @@ function Items() {
             onClick={openScannerForSearch}
             size="small"
             sx={{ 
-              order: { xs: 2, sm: 1 },
+              order: { xs: 2, sm: 2 },
               minHeight: '40px'
             }}
           >
