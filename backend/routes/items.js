@@ -970,6 +970,68 @@ router.delete('/bulk/all', authenticateToken, async (req, res) => {
   }
 });
 
+// DELETE item image only
+router.delete('/:id/image', authenticateToken, async (req, res) => {
+  try {
+    console.log('🗑️ Removing image for item:', req.params.id);
+    
+    const item = await Item.findById(req.params.id);
+    if (!item) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    // Check if item has an image
+    if (!item.photo || !item.photoPublicId) {
+      return res.status(400).json({ error: 'Item has no image to remove' });
+    }
+
+    console.log('🗑️ Deleting image from Cloudinary:', item.photoPublicId);
+
+    // Delete image from Cloudinary
+    try {
+      await cloudinary.uploader.destroy(item.photoPublicId);
+      console.log('✅ Image deleted from Cloudinary successfully');
+    } catch (deleteError) {
+      console.error('❌ Failed to delete image from Cloudinary:', deleteError);
+      // Continue with removing from database even if Cloudinary deletion fails
+    }
+
+    // Remove image references from database
+    const updatedItem = await Item.findByIdAndUpdate(
+      req.params.id,
+      { 
+        $unset: { 
+          photo: 1, 
+          photoPublicId: 1 
+        } 
+      },
+      { new: true }
+    ).populate('category', 'name description');
+
+    console.log('✅ Image references removed from database');
+
+    // Create audit log
+    await createAuditLog(
+      req.user, 
+      'REMOVE_IMAGE', 
+      item.name, 
+      'Removed item image'
+    );
+
+    res.json({
+      message: 'Image removed successfully',
+      item: updatedItem
+    });
+
+  } catch (error) {
+    console.error('❌ Error removing image:', error);
+    res.status(500).json({ 
+      error: 'Failed to remove image', 
+      details: error.message 
+    });
+  }
+});
+
 // Test endpoint to verify server is working
 router.get('/test-server', (req, res) => {
   res.json({ 
