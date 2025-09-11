@@ -1118,7 +1118,10 @@ function Items() {
       <Fab 
         color="primary" 
         aria-label="add" 
-        onClick={handleAddClick} 
+        onClick={() => {
+          alert('FAB BUTTON CLICKED!');
+          handleAddClick();
+        }} 
         sx={{ 
           position: 'fixed', 
           bottom: { xs: 20, sm: 32 }, 
