@@ -493,10 +493,18 @@ async function handleItemCreation(req, res) {
           api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'MISSING'
         });
         
+        // Check if all required env vars are present
+        if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+          console.error('❌ Missing Cloudinary configuration');
+          return res.status(500).json({ error: 'Image upload service not properly configured' });
+        }
+        
         const uploadResult = await new Promise((resolve, reject) => {
           const timestamp = Math.floor(Date.now() / 1000); // Use seconds, not milliseconds
           const random = Math.round(Math.random() * 1E9);
           const publicId = `item-${timestamp}-${random}`;
+          
+          console.log('🎯 Attempting upload with publicId:', publicId);
           
           // Simplified upload without transformations to avoid signature issues
           const uploadStream = cloudinary.uploader.upload_stream(
@@ -509,14 +517,17 @@ async function handleItemCreation(req, res) {
             (error, result) => {
               if (error) {
                 console.error('❌ Cloudinary upload error:', error);
+                console.error('❌ Error details:', JSON.stringify(error, null, 2));
                 reject(error);
               } else {
                 console.log('✅ Cloudinary upload successful:', result.public_id);
+                console.log('🔗 Secure URL:', result.secure_url);
                 resolve(result);
               }
             }
           );
           
+          console.log('📤 Uploading buffer of size:', req.file.buffer.length);
           uploadStream.end(req.file.buffer);
         });
         
