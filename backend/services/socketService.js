@@ -224,6 +224,42 @@ class SocketService {
     console.log(`📋 New internal order notification sent: ${orderData.orderNumber}`);
   }
 
+  // Notify when internal order status changes (approve/reject/complete)
+  notifyInternalOrderStatusChange(orderData) {
+    const statusMessages = {
+      approved: '✅ Internal Order Approved',
+      rejected: '❌ Internal Order Rejected', 
+      completed: '📦 Internal Order Completed',
+      cancelled: '⚠️ Internal Order Cancelled'
+    };
+
+    const notification = {
+      type: 'internal-order-status-change',
+      orderNumber: orderData.orderNumber,
+      status: orderData.status,
+      updatedBy: orderData.updatedBy,
+      items: orderData.items || [],
+      requestedBy: orderData.requestedBy,
+      timestamp: new Date()
+    };
+
+    // Send to all admins, tech admins, and the original requester
+    this.io.to('role-admin').emit('internal-order-status-change', notification);
+    this.io.to('role-superadmin').emit('internal-order-status-change', notification);
+    this.io.to('role-techadmin').emit('internal-order-status-change', notification);
+    
+    // Also send to the user who created the order
+    if (orderData.createdBy) {
+      const userConnection = this.connectedUsers.get(orderData.createdBy);
+      if (userConnection) {
+        userConnection.socket.emit('internal-order-status-change', notification);
+      }
+    }
+
+    const statusTitle = statusMessages[orderData.status] || '📋 Internal Order Updated';
+    console.log(`${statusTitle}: ${orderData.orderNumber}`);
+  }
+
   // Send system-wide alert
   sendSystemAlert(message, severity = 'info') {
     const notification = {

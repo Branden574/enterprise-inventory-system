@@ -98,6 +98,25 @@ class NotificationService {
         });
       });
 
+      this.socket.on('internal-order-status-change', (data) => {
+        const statusMessages = {
+          approved: '✅ Internal Order Approved',
+          rejected: '❌ Internal Order Rejected',
+          completed: '📦 Internal Order Completed',
+          cancelled: '⚠️ Internal Order Cancelled'
+        };
+        
+        this.notifyListeners({
+          type: 'internal-order-status',
+          title: statusMessages[data.status] || '📋 Internal Order Updated',
+          message: `Internal Order #${data.orderNumber} has been ${data.status}`,
+          severity: data.status === 'approved' || data.status === 'completed' ? 'success' : 
+                   data.status === 'rejected' || data.status === 'cancelled' ? 'error' : 'info',
+          timestamp: new Date(data.timestamp),
+          data: data
+        });
+      });
+
       this.socket.on('item-added', (data) => {
         this.notifyListeners({
           type: 'item-added',

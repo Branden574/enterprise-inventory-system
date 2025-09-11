@@ -223,11 +223,15 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
     await order.save();
     
     // Send notification to user about status change
-    socketService.notifyInternalOrderStatusChange(
-      order, 
-      status,
-      rejectionReason || null
-    );
+    socketService.notifyInternalOrderStatusChange({
+      orderNumber: order.orderNumber,
+      status: status,
+      updatedBy: req.user.id,
+      createdBy: order.requestedBy,
+      requestedBy: order.requestedBy?.username || 'Unknown User',
+      items: order.items,
+      rejectionReason: rejectionReason || null
+    });
     
     // Populate the updated order before returning
     const updatedOrder = await InternalOrder.findById(order._id)
