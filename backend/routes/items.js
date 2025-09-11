@@ -561,18 +561,66 @@ router.put('/:id', authenticateToken, upload.single('photo'), async (req, res) =
 
     // Handle new image upload
     if (req.file) {
-      // Delete old image from Cloudinary if it exists
-      if (existingItem.photoPublicId) {
-        try {
-          await cloudinary.uploader.destroy(existingItem.photoPublicId);
-        } catch (deleteError) {
-          console.error('Failed to delete old image from Cloudinary:', deleteError);
+      try {
+        console.log('📸 Processing image upload for item update...');
+        console.log('🧪 File details:', {
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size
+        });
+        
+        // Delete old image from Cloudinary if it exists
+        if (existingItem.photoPublicId) {
+          try {
+            await cloudinary.uploader.destroy(existingItem.photoPublicId);
+            console.log('🗑️ Old image deleted:', existingItem.photoPublicId);
+          } catch (deleteError) {
+            console.error('Failed to delete old image from Cloudinary:', deleteError);
+          }
         }
+        
+        // Manual upload to Cloudinary (same as POST route)
+        const uploadResult = await new Promise((resolve, reject) => {
+          const timestamp = Math.floor(Date.now() / 1000);
+          const random = Math.round(Math.random() * 1E9);
+          const publicId = `item-${timestamp}-${random}`;
+          
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder: 'inventory-items',
+              public_id: publicId,
+              resource_type: 'auto'
+            },
+            (error, result) => {
+              if (error) {
+                console.error('❌ Cloudinary upload error:', error);
+                reject(error);
+              } else {
+                console.log('✅ Cloudinary upload successful:', result.public_id);
+                resolve(result);
+              }
+            }
+          );
+          
+          uploadStream.end(req.file.buffer);
+        });
+        
+        // Set new image data
+        updateData.photo = uploadResult.secure_url;
+        updateData.photoPublicId = uploadResult.public_id;
+        
+        console.log('📸 Photo data updated:', {
+          photo: updateData.photo,
+          photoPublicId: updateData.photoPublicId
+        });
+        
+      } catch (uploadError) {
+        console.error('❌ Failed to upload image to Cloudinary:', uploadError);
+        return res.status(500).json({ 
+          error: 'Failed to upload image', 
+          details: uploadError.message 
+        });
       }
-      
-      // Set new image data
-      updateData.photo = req.file.path;
-      updateData.photoPublicId = req.file.filename;
     }
 
     const item = await Item.findByIdAndUpdate(req.params.id, updateData, { new: true });
