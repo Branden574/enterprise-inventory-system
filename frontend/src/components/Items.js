@@ -38,8 +38,9 @@ function Items() {
   const [imagePreview, setImagePreview] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [openTypeSelector, setOpenTypeSelector] = useState(false);
-  const [itemType, setItemType] = useState('item'); // 'item' or 'book'
+  // Simple and clean type selector implementation
+  const [showTypeSelector, setShowTypeSelector] = useState(false);
+  const [selectedItemType, setSelectedItemType] = useState('item'); // 'item' or 'book'
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [customFieldsConfig, setCustomFieldsConfig] = useState([]);
   const [search, setSearch] = useState('');
@@ -168,7 +169,7 @@ function Items() {
       const updatedForm = { ...form, [e.target.name]: e.target.value };
       
       // Auto-generate name from title for books if name is empty
-      if (itemType === 'book' && e.target.name === 'title' && !form.name) {
+      if (selectedItemType === 'book' && e.target.name === 'title' && !form.name) {
         updatedForm.name = e.target.value;
       }
       
@@ -179,7 +180,7 @@ function Items() {
   const validateForm = () => {
     const errors = {};
     
-    if (itemType === 'book') {
+    if (selectedItemType === 'book') {
       // Book validation
       if (!form.title?.trim()) errors.title = 'Book title is required';
       if (form.quantity < 0) errors.quantity = 'Quantity cannot be negative';
@@ -395,7 +396,7 @@ function Items() {
     const isBook = !!(item.isbn13 || item.isbn10 || item.title || 
       (item.category && categories.find(c => c._id === item.category)?.name?.toLowerCase().includes('book')));
     
-    setItemType(isBook ? 'book' : 'item');
+    setSelectedItemType(isBook ? 'book' : 'item');
     setForm({
       ...item,
       photo: item.photo || null, // Keep the existing photo URL
@@ -530,40 +531,17 @@ function Items() {
     }
   };
 
-  const handleAddClick = () => {
-    console.log('🔥 handleAddClick called!');
-    console.log('🔥 openTypeSelector before:', openTypeSelector);
-    console.log('🔥 Current itemType state:', itemType);
-    console.log('🔥 Current openDialog state:', openDialog);
-    setOpenTypeSelector(true);
-    console.log('🔥 setOpenTypeSelector(true) called');
+  // Completely new and simple add button handler
+  const handleAddButtonClick = () => {
+    console.log('� ADD BUTTON CLICKED - OPENING TYPE SELECTOR');
+    setShowTypeSelector(true);
   };
 
-  const handleTypeSelection = (type) => {
-    setItemType(type);
-    setOpenTypeSelector(false);
-    
-    // Initialize custom fields with their default values
-    const defaultCustomFields = {};
-    customFieldsConfig.filter(field => field && field.name).forEach(field => {
-      if (field.defaultValue) {
-        defaultCustomFields[field.name] = field.defaultValue;
-      }
-    });
-    
-    setForm({ 
-      name: '', 
-      quantity: 1, 
-      location: '', 
-      notes: '', 
-      category: '', 
-      photo: null, 
-      customFields: defaultCustomFields,
-      status: 'available'
-    });
-    setImagePreview(null);
-    setEditingId(null);
-    // Open the main dialog with the selected type
+  // Simple type selection handler
+  const selectItemType = (type) => {
+    console.log('🎯 TYPE SELECTED:', type);
+    setSelectedItemType(type);
+    setShowTypeSelector(false);
     setOpenDialog(true);
   };
 
@@ -1119,8 +1097,8 @@ function Items() {
         color="primary" 
         aria-label="add" 
         onClick={() => {
-          alert('FAB BUTTON CLICKED!');
-          handleAddClick();
+          alert('FAB CLICKED - SHOULD OPEN TYPE SELECTOR');
+          handleAddButtonClick();
         }} 
         sx={{ 
           position: 'fixed', 
@@ -1153,18 +1131,18 @@ function Items() {
           fontSize: { xs: '1.25rem', sm: '1.5rem' },
           py: { xs: 1, sm: 2 }
         }}>
-          {editingId ? `Edit ${itemType === 'book' ? 'Book' : 'Item'}` : `Add ${itemType === 'book' ? 'Book' : 'Item'}`}
+          {editingId ? `Edit ${selectedItemType === 'book' ? 'Book' : 'Item'}` : `Add ${selectedItemType === 'book' ? 'Book' : 'Item'}`}
         </DialogTitle>
         <DialogContent sx={{ px: { xs: 2, sm: 3 } }}>
-          {console.log('🔥 Main dialog rendering with itemType:', itemType, 'openDialog:', openDialog)}
+          {console.log('🔥 Main dialog rendering with selectedItemType:', selectedItemType, 'openDialog:', openDialog)}
           <form id="item-form" onSubmit={handleSubmit} encType="multipart/form-data">
             <Grid container spacing={{ xs: 1, sm: 2 }} alignItems="center">
               {/* Essential Fields */}
               <Grid item xs={12}>
                 <TextField 
-                  name={itemType === 'book' ? 'title' : 'name'}
-                  label={itemType === 'book' ? 'Book Title *' : 'Item Name *'}
-                  value={itemType === 'book' ? (form.title || '') : (form.name || form.title || '')} 
+                  name={selectedItemType === 'book' ? 'title' : 'name'}
+                  label={selectedItemType === 'book' ? 'Book Title *' : 'Item Name *'}
+                  value={selectedItemType === 'book' ? (form.title || '') : (form.name || form.title || '')} 
                   onChange={handleChange} 
                   required
                   fullWidth 
@@ -1174,7 +1152,7 @@ function Items() {
               </Grid>
               
               {/* Show ISBN field for books */}
-              {itemType === 'book' && (
+              {selectedItemType === 'book' && (
                 <Grid item xs={12}>
                   <TextField 
                     name="isbn13" 
@@ -1302,8 +1280,8 @@ function Items() {
                 />
               </Grid>
 
-              {/* Book-specific fields - Only show when itemType is 'book' */}
-              {itemType === 'book' && (
+              {/* Book-specific fields - Only show when selectedItemType is 'book' */}
+              {selectedItemType === 'book' && (
                 <>
                   <Grid item xs={12}>
                     <Typography 
@@ -1537,16 +1515,16 @@ function Items() {
       />
 
       {/* Item Type Selector Dialog */}
-      {console.log('🔥 Rendering type selector, openTypeSelector =', openTypeSelector)}
+      {console.log('🔥 Rendering type selector, showTypeSelector =', showTypeSelector)}
       <Dialog 
-        open={openTypeSelector} 
-        onClose={() => setOpenTypeSelector(false)}
+        open={showTypeSelector} 
+        onClose={() => setShowTypeSelector(false)}
         maxWidth="sm"
         fullWidth
         PaperProps={{
           sx: {
             borderRadius: 3,
-            animation: openTypeSelector ? 'fadeInUp 0.3s ease-out' : 'none',
+            animation: showTypeSelector ? 'fadeInUp 0.3s ease-out' : 'none',
             '@keyframes fadeInUp': {
               '0%': {
                 opacity: 0,
@@ -1574,7 +1552,7 @@ function Items() {
                 variant="contained"
                 size="large"
                 fullWidth
-                onClick={() => handleTypeSelection('item')}
+                onClick={() => selectItemType('item')}
                 sx={{
                   py: 3,
                   borderRadius: 2,
@@ -1605,7 +1583,7 @@ function Items() {
                 variant="contained"
                 size="large"
                 fullWidth
-                onClick={() => handleTypeSelection('book')}
+                onClick={() => selectItemType('book')}
                 sx={{
                   py: 3,
                   borderRadius: 2,
@@ -1635,7 +1613,7 @@ function Items() {
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
           <Button 
-            onClick={() => setOpenTypeSelector(false)}
+            onClick={() => setShowTypeSelector(false)}
             sx={{ minWidth: 100 }}
           >
             Cancel
