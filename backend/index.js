@@ -302,14 +302,16 @@ app.use('/api/*', (req, res) => {
   });
 });
 
-// Serve React app for all other non-uploads routes (client-side routing)
-app.use((req, res, next) => {
-  // Don't serve React app for uploads or API routes
-  if (req.path.startsWith('/uploads') || req.path.startsWith('/api')) {
-    return next();
+
+// Serve React app for all other routes (SPA support)
+const path = require('path');
+app.get('*', (req, res) => {
+  // Only serve index.html for non-API, non-static requests
+  if (!req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
+    res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
+  } else {
+    res.status(404).send('Not found');
   }
-  // For all other paths, serve the React app
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Handle uncaught exceptions
