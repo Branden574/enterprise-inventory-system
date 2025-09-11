@@ -530,7 +530,10 @@ function Items() {
   };
 
   const handleAddClick = () => {
+    console.log('🔥 handleAddClick called!');
+    console.log('🔥 openTypeSelector before:', openTypeSelector);
     setOpenTypeSelector(true);
+    console.log('🔥 setOpenTypeSelector(true) called');
   };
 
   const handleTypeSelection = (type) => {
@@ -1526,6 +1529,7 @@ function Items() {
       />
 
       {/* Item Type Selector Dialog */}
+      {console.log('🔥 Rendering type selector, openTypeSelector =', openTypeSelector)}
       <Dialog 
         open={openTypeSelector} 
         onClose={() => setOpenTypeSelector(false)}
