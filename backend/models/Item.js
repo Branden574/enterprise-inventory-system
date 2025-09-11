@@ -19,12 +19,28 @@ const ItemSchema = new mongoose.Schema({
     email: { type: Boolean, default: true },
     inApp: { type: Boolean, default: true },
     threshold: { type: Number, default: 0, min: 0, max: 100 } // percentage of minimum quantity to trigger alert
-  }
+  },
+  // Book-specific fields
+  isbn13: { type: String, trim: true, index: true },
+  isbn10: { type: String, trim: true, index: true },
+  title: { type: String, trim: true }, // Alternative to name for books
+  cases: { type: Number, default: 0, min: 0 },
+  caseQty: { type: Number, default: 0, min: 0 },
+  total: { type: Number, default: 0, min: 0 }, // Calculated or imported total
+  status: { type: String, enum: ['active', 'discontinued', 'on-order', 'backordered', 'available'], default: 'active' },
+  statusColor: { type: String, trim: true }, // For color coding like in your Excel
+  publisher: { type: String, trim: true },
+  edition: { type: String, trim: true },
+  subject: { type: String, trim: true },
+  gradeLevel: { type: String, trim: true }
 });
 
 // Enterprise-level indexes for ultra-high performance
-ItemSchema.index({ name: 'text', notes: 'text', location: 'text' }); // Text search index
+ItemSchema.index({ name: 'text', notes: 'text', location: 'text', title: 'text', publisher: 'text', subject: 'text' }); // Enhanced text search index
 ItemSchema.index({ name: 1 }); // Name index for sorting
+ItemSchema.index({ title: 1 }); // Title index for books
+ItemSchema.index({ isbn13: 1 }, { sparse: true }); // ISBN-13 lookup
+ItemSchema.index({ isbn10: 1 }, { sparse: true }); // ISBN-10 lookup
 ItemSchema.index({ quantity: 1 }); // Quantity index for filtering
 ItemSchema.index({ location: 1 }); // Location index for filtering
 ItemSchema.index({ createdAt: -1 }); // Recent items index
@@ -33,6 +49,10 @@ ItemSchema.index({ 'customFields.barcode': 1 }, { sparse: true }); // Barcode lo
 ItemSchema.index({ updatedAt: -1 }); // Updated items index
 ItemSchema.index({ quantity: 1, minimumQuantity: 1 }); // Low stock optimization
 ItemSchema.index({ category: 1, name: 1 }); // Category + name compound index
+ItemSchema.index({ status: 1 }); // Status filtering
+ItemSchema.index({ publisher: 1 }); // Publisher filtering
+ItemSchema.index({ subject: 1 }); // Subject filtering
+ItemSchema.index({ gradeLevel: 1 }); // Grade level filtering
 
 // Performance optimization: Set read preference for better distribution
 ItemSchema.set('read', 'secondaryPreferred');

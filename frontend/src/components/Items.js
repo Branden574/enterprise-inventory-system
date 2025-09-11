@@ -12,7 +12,26 @@ import BarcodeScanner from './BarcodeScanner';
 function Items() {
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [form, setForm] = useState({ name: '', quantity: 1, location: '', notes: '', category: '', photo: null, customFields: {} });
+  const [form, setForm] = useState({ 
+    name: '', 
+    title: '',
+    quantity: 1, 
+    location: '', 
+    notes: '', 
+    category: '', 
+    photo: null, 
+    customFields: {},
+    isbn13: '',
+    isbn10: '',
+    cases: 0,
+    caseQty: 0,
+    total: 0,
+    status: '',
+    publisher: '',
+    edition: '',
+    subject: '',
+    gradeLevel: ''
+  });
   const [imagePreview, setImagePreview] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
@@ -233,6 +252,7 @@ function Items() {
         console.log('📝 Uploading without image...');
         const jsonData = {
           name: form.name,
+          title: form.title,
           description: form.description,
           category: form.category,
           quantity: form.quantity,
@@ -240,7 +260,17 @@ function Items() {
           barcode: form.barcode,
           location: form.location,
           notes: form.notes,
-          customFields: form.customFields
+          customFields: form.customFields,
+          isbn13: form.isbn13,
+          isbn10: form.isbn10,
+          cases: form.cases,
+          caseQty: form.caseQty,
+          total: form.total,
+          status: form.status,
+          publisher: form.publisher,
+          edition: form.edition,
+          subject: form.subject,
+          gradeLevel: form.gradeLevel
         };
 
         console.log('📋 JSON data being sent:', jsonData);
@@ -275,12 +305,23 @@ function Items() {
       
       setForm({ 
         name: '', 
+        title: '',
         quantity: 1, 
         location: '', 
         notes: '', 
         category: '', 
         photo: null, 
-        customFields: defaultCustomFields 
+        customFields: defaultCustomFields,
+        isbn13: '',
+        isbn10: '',
+        cases: 0,
+        caseQty: 0,
+        total: 0,
+        status: '',
+        publisher: '',
+        edition: '',
+        subject: '',
+        gradeLevel: ''
       });
       setImagePreview(null);
       setEditingId(null);
@@ -528,9 +569,28 @@ function Items() {
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     {item.photo && <img src={item.photo} alt={item.name} style={{ maxWidth: 160, maxHeight: 120, borderRadius: 8, marginBottom: 8 }} />}
                     <Typography variant="h6" sx={{ fontWeight: 600 }}>{item.name}</Typography>
+                    {item.title && <Typography color="text.secondary" sx={{ fontStyle: 'italic' }}>{item.title}</Typography>}
+                    {item.isbn13 && <Typography color="text.secondary" variant="body2">ISBN-13: {item.isbn13}</Typography>}
+                    {item.publisher && <Typography color="text.secondary" variant="body2">Publisher: {item.publisher}</Typography>}
                     <Typography color="text.secondary">Qty: {item.quantity}</Typography>
+                    {item.cases > 0 && <Typography color="text.secondary">Cases: {item.cases} (Qty per case: {item.caseQty})</Typography>}
                     <Typography color="text.secondary">Location: {item.location}</Typography>
                     <Typography color="text.secondary">Category: {item.category?.name || 'None'}</Typography>
+                    {item.status && (
+                      <Typography 
+                        color={
+                          item.status === 'Available' ? 'success.main' :
+                          item.status === 'Low Stock' ? 'warning.main' :
+                          item.status === 'Out of Stock' ? 'error.main' :
+                          'text.secondary'
+                        }
+                        sx={{ fontWeight: 500 }}
+                      >
+                        Status: {item.status}
+                      </Typography>
+                    )}
+                    {item.subject && <Typography color="text.secondary" variant="body2">Subject: {item.subject}</Typography>}
+                    {item.gradeLevel && <Typography color="text.secondary" variant="body2">Grade: {item.gradeLevel}</Typography>}
                     <Typography color="text.secondary">Notes: {item.notes}</Typography>
                     {item.customFields && Object.entries(item.customFields).map(([key, value]) => (
                       <Typography color="text.secondary" key={key}>{key}: {value}</Typography>
@@ -569,6 +629,36 @@ function Items() {
               </Grid>
               <Grid item xs={12} sm={4}>
                 <TextField 
+                  name="title" 
+                  label="Title" 
+                  value={form.title} 
+                  onChange={handleChange} 
+                  fullWidth 
+                  margin="normal"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField 
+                  name="isbn13" 
+                  label="ISBN-13" 
+                  value={form.isbn13} 
+                  onChange={handleChange} 
+                  fullWidth 
+                  margin="normal"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField 
+                  name="isbn10" 
+                  label="ISBN-10" 
+                  value={form.isbn10} 
+                  onChange={handleChange} 
+                  fullWidth 
+                  margin="normal"
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField 
                   name="quantity" 
                   label="Quantity" 
                   type="number" 
@@ -593,6 +683,94 @@ function Items() {
                     }
                   }}
                 />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField 
+                  name="cases" 
+                  label="Cases" 
+                  type="number" 
+                  inputProps={{ 
+                    min: "0",
+                    style: { textAlign: 'center' }
+                  }}
+                  value={form.cases} 
+                  onChange={handleChange} 
+                  fullWidth
+                  margin="normal"
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField 
+                  name="caseQty" 
+                  label="Case Qty" 
+                  type="number" 
+                  inputProps={{ 
+                    min: "0",
+                    style: { textAlign: 'center' }
+                  }}
+                  value={form.caseQty} 
+                  onChange={handleChange} 
+                  fullWidth
+                  margin="normal"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField 
+                  name="publisher" 
+                  label="Publisher" 
+                  value={form.publisher} 
+                  onChange={handleChange} 
+                  fullWidth 
+                  margin="normal"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField 
+                  name="edition" 
+                  label="Edition" 
+                  value={form.edition} 
+                  onChange={handleChange} 
+                  fullWidth 
+                  margin="normal"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField 
+                  name="subject" 
+                  label="Subject" 
+                  value={form.subject} 
+                  onChange={handleChange} 
+                  fullWidth 
+                  margin="normal"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField 
+                  name="gradeLevel" 
+                  label="Grade Level" 
+                  value={form.gradeLevel} 
+                  onChange={handleChange} 
+                  fullWidth 
+                  margin="normal"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth margin="normal">
+                  <InputLabel>Status</InputLabel>
+                  <Select 
+                    name="status" 
+                    value={form.status} 
+                    onChange={handleChange} 
+                    label="Status"
+                  >
+                    <MenuItem value=""><em>None</em></MenuItem>
+                    <MenuItem value="Available">Available</MenuItem>
+                    <MenuItem value="Low Stock">Low Stock</MenuItem>
+                    <MenuItem value="Out of Stock">Out of Stock</MenuItem>
+                    <MenuItem value="Ordered">Ordered</MenuItem>
+                    <MenuItem value="Discontinued">Discontinued</MenuItem>
+                  </Select>
+                </FormControl>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField 
