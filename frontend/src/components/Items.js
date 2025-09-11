@@ -12,7 +12,8 @@ import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import BarcodeScanner from './BarcodeScanner';
 
 function Items() {
-  console.log('🚀 Items component loaded - Version 1.0.2 with TYPE SELECTOR');
+  // FORCE CODE CHANGES TO BE OBVIOUS - VERSION 2.0.0
+  console.log('� Items component loaded - VERSION 2.0.0 - DIRECT SOURCE CODE EDIT');
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState({ 
@@ -531,7 +532,7 @@ function Items() {
     }
   };
 
-  // Completely new and simple add button handler
+  // COMPLETELY REWRITTEN FOR VERSION 2.0.0
   const handleAddButtonClick = () => {
     console.log('� ADD BUTTON CLICKED - OPENING TYPE SELECTOR');
     setShowTypeSelector(true);
@@ -768,13 +769,22 @@ function Items() {
           alignItems: { xs: 'stretch', sm: 'center' },
           mb: 1
         }}>
-          {/* URGENT ADD ITEM BUTTON - GUARANTEED TO WORK */}
+          {/* URGENT ADD ITEM BUTTON - NATIVE JAVASCRIPT VERSION */}
           <Button
             variant="contained"
             color="primary"
             onClick={() => {
-              alert('OPENING TYPE SELECTOR');
-              setShowTypeSelector(true);
+              const choice = window.confirm("SELECT ITEM TYPE:\n\nClick 'OK' for Book\nClick 'Cancel' for General Item");
+          
+              if (choice) {
+                setSelectedItemType('book');
+                window.alert("You selected BOOK");
+              } else {
+                setSelectedItemType('item');
+                window.alert("You selected GENERAL ITEM");
+              }
+              
+              setOpenDialog(true);
             }}
             size="medium"
             sx={{ 
@@ -1119,8 +1129,17 @@ function Items() {
         color="primary" 
         aria-label="add" 
         onClick={() => {
-          alert('FAB CLICKED - SHOULD OPEN TYPE SELECTOR');
-          handleAddButtonClick();
+          const choice = window.confirm("SELECT ITEM TYPE:\n\nClick 'OK' for Book\nClick 'Cancel' for General Item");
+          
+          if (choice) {
+            setSelectedItemType('book');
+            window.alert("You selected BOOK");
+          } else {
+            setSelectedItemType('item');
+            window.alert("You selected GENERAL ITEM");
+          }
+          
+          setOpenDialog(true);
         }} 
         sx={{ 
           position: 'fixed', 
