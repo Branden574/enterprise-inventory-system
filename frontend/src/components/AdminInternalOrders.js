@@ -72,12 +72,26 @@ function AdminInternalOrders() {
       
       const response = await axios.get(endpoint);
       console.log('AdminInternalOrders: Response received:', response.data);
-      setOrders(response.data);
+      
+      // Ensure we always have an array
+      const ordersData = Array.isArray(response.data) ? response.data : [];
+      setOrders(ordersData);
     } catch (err) {
       console.error('AdminInternalOrders: Error fetching orders:', err);
       console.error('AdminInternalOrders: Error response:', err.response?.data);
       console.error('AdminInternalOrders: Error status:', err.response?.status);
-      setError(err.response?.data?.error || 'Failed to fetch internal orders');
+      
+      // Set empty array on error to prevent blank page
+      setOrders([]);
+      
+      // Better error messages
+      if (err.response?.status === 401) {
+        setError('Authentication failed. Please log in again.');
+      } else if (err.response?.status === 403) {
+        setError('Access denied. Admin permissions required.');
+      } else {
+        setError(err.response?.data?.error || `Failed to fetch internal orders: ${err.message}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -199,7 +213,13 @@ function AdminInternalOrders() {
         </Alert>
       )}
 
-      {filteredOrders.length === 0 ? (
+      {loading ? (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h6" color="text.secondary">
+            Loading internal orders...
+          </Typography>
+        </Paper>
+      ) : filteredOrders.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="h6" color="text.secondary">
             {currentTab === 0 ? 'No pending requests' : 'No internal orders found'}

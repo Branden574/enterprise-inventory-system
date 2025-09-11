@@ -84,12 +84,8 @@ class SocketService {
         console.log(`❌ User ${user.id} disconnected: ${reason}. Remaining: ${this.connectedUsers.size}`);
       });
 
-      // Send welcome notification
-      socket.emit('system-alert', {
-        message: 'Connected to live notifications',
-        severity: 'success',
-        timestamp: new Date()
-      });
+      // User connected successfully - just log, no notification
+      console.log(`🔗 User ${user.id} (${user.role}) connected successfully`);
     });
 
     // Periodic low stock check (every 30 minutes)
