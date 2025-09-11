@@ -1,4 +1,5 @@
 // Enhanced inventory management system with fixed cases display
+// DC4 Inventory Management System - Item Type Selector
 import React, { useState, useEffect } from 'react';
 import axios from '../utils/axios';
 import {
