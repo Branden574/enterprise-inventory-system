@@ -20,8 +20,9 @@ RUN npm install --production
 # Copy backend source code
 COPY backend/ ./
 
-# Copy built frontend from previous stage
+# Copy built frontend from previous stage - ensure all files are copied correctly
 COPY --from=frontend-build /app/frontend/build ./public
+RUN echo "Frontend build copied at $(date)" > ./public/build-timestamp.txt
 
 # Expose port
 EXPOSE 3001
