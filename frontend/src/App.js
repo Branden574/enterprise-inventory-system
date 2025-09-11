@@ -9,6 +9,7 @@ import theme from './theme.js';
 import Navbar from './components/Navbar.js';
 import Dashboard from './components/Dashboard.js';
 import Items from './components/Items.js';
+import ItemsSimple from './components/ItemsSimple.js';
 import Categories from './components/Categories.js';
 import Login from './components/Login.js';
 import Register from './components/Register.js';
@@ -147,7 +148,7 @@ function App() {
           <Route path="/dashboard" element={token ? <Dashboard /> : <ProtectedMessage tab="Dashboard" />} />
           
           {/* Inventory Management */}
-          <Route path="/items" element={token ? <Items token={token} /> : <ProtectedMessage tab="Items" />} />
+          <Route path="/items" element={token ? <ItemsSimple token={token} /> : <ProtectedMessage tab="Items" />} />
           <Route path="/categories" element={token ? <Categories token={token} /> : <ProtectedMessage tab="Categories" />} />
           
           {/* Purchase Orders */}

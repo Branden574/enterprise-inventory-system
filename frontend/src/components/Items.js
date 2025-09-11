@@ -698,7 +698,7 @@ function Items() {
         px: { xs: 0, sm: 1 }
       }}>
         <TextField
-          value={search}
+          value={search || ''}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by title, ISBN, publisher..."
           variant="outlined"
@@ -744,7 +744,7 @@ function Items() {
           >
             <InputLabel>Filter by Category</InputLabel>
             <Select
-              value={categoryFilter}
+              value={categoryFilter || ''}
               onChange={(e) => setCategoryFilter(e.target.value)}
               label="Filter by Category"
             >
@@ -1090,7 +1090,7 @@ function Items() {
                 <TextField 
                   name="title" 
                   label="Book Title *" 
-                  value={form.title} 
+                  value={form.title || ''} 
                   onChange={handleChange} 
                   required
                   fullWidth 
@@ -1103,7 +1103,7 @@ function Items() {
                 <TextField 
                   name="isbn13" 
                   label="ISBN-13 *" 
-                  value={form.isbn13} 
+                  value={form.isbn13 || ''} 
                   onChange={handleChange} 
                   required
                   fullWidth 
@@ -1137,7 +1137,7 @@ function Items() {
                 <TextField 
                   name="location" 
                   label="Location *" 
-                  value={form.location} 
+                  value={form.location || ''} 
                   onChange={handleChange} 
                   fullWidth 
                   required
@@ -1158,7 +1158,7 @@ function Items() {
                   <InputLabel>Category</InputLabel>
                   <Select 
                     name="category" 
-                    value={form.category} 
+                    value={form.category || ''} 
                     onChange={handleChange} 
                     label="Category"
                   >
@@ -1184,7 +1184,7 @@ function Items() {
                   <InputLabel>Status *</InputLabel>
                   <Select 
                     name="status" 
-                    value={form.status} 
+                    value={form.status || ''} 
                     onChange={handleChange} 
                     label="Status"
                     required
@@ -1217,7 +1217,7 @@ function Items() {
                 <TextField 
                   name="publisher" 
                   label="Publisher (Optional)" 
-                  value={form.publisher} 
+                  value={form.publisher || ''} 
                   onChange={handleChange} 
                   fullWidth 
                   margin="normal"
@@ -1229,7 +1229,7 @@ function Items() {
                 <TextField 
                   name="edition" 
                   label="Edition (Optional)" 
-                  value={form.edition} 
+                  value={form.edition || ''} 
                   onChange={handleChange} 
                   fullWidth 
                   margin="normal"
@@ -1241,7 +1241,7 @@ function Items() {
                 <TextField 
                   name="name" 
                   label="Internal Name (Optional)" 
-                  value={form.name} 
+                  value={form.name || ''} 
                   onChange={handleChange} 
                   fullWidth 
                   margin="normal"
@@ -1254,7 +1254,7 @@ function Items() {
                 <TextField 
                   name="notes" 
                   label="Notes (Optional)" 
-                  value={form.notes} 
+                  value={form.notes || ''} 
                   onChange={handleChange} 
                   fullWidth 
                   multiline 
@@ -1304,7 +1304,7 @@ function Items() {
                           label={field.name}
                         >
                           <MenuItem value=""><em>None</em></MenuItem>
-                          {field.options.map((opt, i) => (
+                          {(field.options || []).map((opt, i) => (
                             <MenuItem key={i} value={opt}>{opt}</MenuItem>
                           ))}
                         </Select>
