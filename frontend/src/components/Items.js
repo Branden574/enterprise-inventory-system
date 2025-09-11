@@ -382,12 +382,12 @@ function Items() {
   const handleEdit = item => {
     setForm({
       ...item,
-      photo: null,
+      photo: item.photo || null, // Keep the existing photo URL
       customFields: item.customFields || {}
     });
     setEditingId(item._id);
-    // Use the full Cloudinary URL or construct local path for legacy uploads
-    setImagePreview(item.photo ? (item.photo.startsWith('http') ? item.photo : `/uploads/${item.photo}`) : null);
+    // Don't set imagePreview for existing images - let the form.photo handle it
+    setImagePreview(null);
     setOpenDialog(true);
   };
 
