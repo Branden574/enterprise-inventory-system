@@ -4,6 +4,7 @@ const InternalOrder = require('../models/InternalOrder');
 const Item = require('../models/Item');
 const { authenticateToken } = require('../middleware/auth');
 const auditLogger = require('../middleware/auditLogger');
+const socketService = require('../services/socketService');
 
 // Get all internal orders (admin) or user's own orders (staff)
 router.get('/', authenticateToken, async (req, res) => {
@@ -145,6 +146,9 @@ router.post('/', authenticateToken, async (req, res) => {
       .populate('requestedBy', 'username email')
       .populate('items.item', 'name sku quantity');
     
+    // Notify admins about new internal order
+    socketService.notifyNewInternalOrder(populatedOrder);
+    
     res.status(201).json(populatedOrder);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -217,6 +221,13 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
     
     order.status = status;
     await order.save();
+    
+    // Send notification to user about status change
+    socketService.notifyInternalOrderStatusChange(
+      order, 
+      status,
+      rejectionReason || null
+    );
     
     // Populate the updated order before returning
     const updatedOrder = await InternalOrder.findById(order._id)

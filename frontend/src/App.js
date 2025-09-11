@@ -29,6 +29,8 @@ import CompletedPOs from './components/CompletedPOs.js';
 import CompletedPOForm from './components/CompletedPOForm.js';
 import InternalOrders from './components/InternalOrders.js';
 import InternalOrderForm from './components/InternalOrderForm.js';
+import LiveNotifications from './components/LiveNotifications.js';
+import notificationService from './services/notificationService.js';
 import InternalOrderView from './components/InternalOrderView.js';
 import OrderRequests from './components/OrderRequests.js';
 import AdminInternalOrders from './components/AdminInternalOrders.js';
@@ -109,6 +111,26 @@ function App() {
     }
   }, []);
 
+  // Initialize notification service when token changes
+  React.useEffect(() => {
+    if (token) {
+      // Get user role from storage
+      const remembered = localStorage.getItem('rememberMe') === 'true';
+      const userRole = remembered ? localStorage.getItem('role') : sessionStorage.getItem('role');
+      
+      // Connect to notification service
+      notificationService.connect(token, userRole);
+    } else {
+      // Disconnect when user logs out
+      notificationService.disconnect();
+    }
+
+    // Cleanup on unmount
+    return () => {
+      notificationService.disconnect();
+    };
+  }, [token]);
+
   // Helper for protected route message
   const ProtectedMessage = ({ tab }) => (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
@@ -136,6 +158,10 @@ function App() {
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <Router>
         <Navbar token={token} setToken={setToken} />
+        
+        {/* Live Notifications Component */}
+        {token && <LiveNotifications />}
+        
         <Box sx={{ 
           width: '100%', 
           minHeight: '100vh', 

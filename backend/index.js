@@ -6,8 +6,10 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
+const http = require('http');
 const performanceMonitor = require('./utils/performanceMonitor');
 const cacheManager = require('./utils/cacheManager');
+const socketService = require('./services/socketService');
 
 const app = express();
 
@@ -326,9 +328,17 @@ process.on('unhandledRejection', (reason, promise) => {
 
 
 const PORT = process.env.PORT || 5000;
+
+// Create HTTP server
+const server = http.createServer(app);
+
+// Initialize Socket.IO service
+socketService.initialize(server);
+
 if (require.main === module) {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    console.log('🔔 Real-time notifications enabled');
     
     // Start low stock monitoring
     const { startLowStockMonitoring } = require('./services/alertService');
@@ -336,4 +346,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = app;
+module.exports = { app, server, socketService };

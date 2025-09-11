@@ -6,6 +6,7 @@ const { cloudinary } = require('../config/cloudinary');
 const Item = require('../models/Item');
 const { authenticateToken } = require('../middleware/auth');
 const AuditLog = require('../models/AuditLog');
+const socketService = require('../services/socketService');
 
 // Configure memory storage instead of direct Cloudinary storage to avoid Railway signature issues
 const memoryStorage = multer.memoryStorage();
@@ -501,6 +502,9 @@ async function handleItemCreation(req, res) {
       `Created item with quantity: ${item.quantity}`
     );
 
+    // Send real-time notification for new item
+    socketService.notifyItemAdded(item, req.user.id);
+
     res.status(201).json(item);
   } catch (error) {
     console.error('❌ Error creating item:', error);
@@ -648,6 +652,11 @@ router.put('/:id', authenticateToken, upload.single('photo'), async (req, res) =
       `Updated item. New quantity: ${item.quantity}`
     );
 
+    // Check if item is now low stock and send notification
+    if (item.quantity <= 5 && item.alertEnabled !== false) {
+      socketService.notifyLowStock(item);
+    }
+
     res.json(item);
   } catch (error) {
     console.error('Error updating item:', error);
@@ -727,6 +736,11 @@ router.patch('/:id/quantity', authenticateToken, async (req, res) => {
       item.name, 
       `Updated quantity to: ${item.quantity}`
     );
+
+    // Check if item is now low stock and send notification
+    if (item.quantity <= 5 && item.alertEnabled !== false) {
+      socketService.notifyLowStock(item);
+    }
 
     res.json(item);
   } catch (error) {

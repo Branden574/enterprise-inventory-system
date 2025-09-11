@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const PurchaseOrder = require('../models/PurchaseOrder');
 const { authenticateToken } = require('../middleware/auth');
+const socketService = require('../services/socketService');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -125,6 +126,10 @@ router.post('/', authenticateToken, async (req, res) => {
     });
     
     await purchaseOrder.save();
+    
+    // Notify admins about new purchase order
+    socketService.notifyNewPurchaseOrder(purchaseOrder);
+    
     res.status(201).json(purchaseOrder);
   } catch (err) {
     console.error('Purchase order creation error:', err);
@@ -282,6 +287,16 @@ router.patch('/:id/status', authenticateToken, async (req, res) => {
     }
     
     await purchaseOrder.save();
+    
+    // Send notification to user about status change
+    if (originalStatus !== status) {
+      socketService.notifyOrderStatusChange(
+        purchaseOrder, 
+        originalStatus, 
+        status,
+        req.body.rejectionReason || null
+      );
+    }
     
     // Populate user fields for response
     await purchaseOrder.populate('createdBy', 'username');

@@ -157,7 +157,19 @@ function Categories() {
         </Alert>
       )}
 
-      <TableContainer component={Paper}>
+      <TableContainer 
+        component={Paper}
+        sx={{ 
+          maxHeight: 400, 
+          overflow: 'auto',
+          '& .MuiTableHead-root': {
+            position: 'sticky',
+            top: 0,
+            backgroundColor: 'background.paper',
+            zIndex: 1
+          }
+        }}
+      >
         <Table>
           <TableHead>
             <TableRow>
