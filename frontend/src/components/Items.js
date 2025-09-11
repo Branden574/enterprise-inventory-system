@@ -544,6 +544,46 @@ function Items() {
     setImagePreview(null);
   };
 
+  // Handle removing image from item
+  const handleRemoveImage = async () => {
+    if (!editingId) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/api/items/${editingId}/image`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Update the form to remove the photo
+        setForm(prev => ({ ...prev, photo: null }));
+        
+        // Show success message
+        setSnackbar({
+          open: true,
+          message: 'Image removed successfully!',
+          severity: 'success'
+        });
+        
+        // Refresh the items list to reflect the change
+        fetchItems();
+      } else {
+        throw new Error('Failed to remove image');
+      }
+    } catch (error) {
+      console.error('Error removing image:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to remove image. Please try again.',
+        severity: 'error'
+      });
+    }
+  };
+
   // Filter items by search and category
   // Filter, sort, and paginate items
   const filteredItems = (Array.isArray(items) ? items : []).filter(item => {
@@ -1313,11 +1353,57 @@ function Items() {
                   </Grid>
                 ))}
               <Grid item xs={12}>
-                <Button variant="contained" component="label" fullWidth>
-                  Upload Image
-                  <input name="photo" type="file" accept="image/*" hidden onChange={handleChange} />
-                </Button>
-                {imagePreview && <img src={imagePreview} alt="Preview" style={{ maxWidth: 120, maxHeight: 120, marginTop: 8, borderRadius: 8 }} />}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Button variant="contained" component="label" fullWidth>
+                    {editingId && form.photo ? 'Replace Image' : 'Upload Image'}
+                    <input name="photo" type="file" accept="image/*" hidden onChange={handleChange} />
+                  </Button>
+                  
+                  {/* Show current image if editing and has image */}
+                  {editingId && form.photo && !imagePreview && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                      <img 
+                        src={form.photo} 
+                        alt="Current" 
+                        style={{ 
+                          maxWidth: 120, 
+                          maxHeight: 120, 
+                          borderRadius: 8,
+                          border: '1px solid #ddd'
+                        }} 
+                      />
+                      <Button 
+                        variant="outlined" 
+                        color="error" 
+                        size="small"
+                        onClick={handleRemoveImage}
+                        sx={{ ml: 1 }}
+                      >
+                        Remove Image
+                      </Button>
+                    </Box>
+                  )}
+                  
+                  {/* Show new image preview */}
+                  {imagePreview && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        New image preview:
+                      </Typography>
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        style={{ 
+                          maxWidth: 120, 
+                          maxHeight: 120, 
+                          marginTop: 8, 
+                          borderRadius: 8,
+                          border: '1px solid #ddd'
+                        }} 
+                      />
+                    </Box>
+                  )}
+                </Box>
               </Grid>
               
               {/* Barcode Scanning Section */}
