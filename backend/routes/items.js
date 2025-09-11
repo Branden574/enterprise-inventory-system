@@ -114,6 +114,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const [items, totalItems] = await Promise.all([
       Item.find(query)
         .populate('createdBy', 'username')
+        .populate('category', 'name description') // POPULATE CATEGORY DATA!
         .sort(sortOptions)
         .skip(skip)
         .limit(limitNum)
@@ -121,13 +122,21 @@ router.get('/', authenticateToken, async (req, res) => {
       Item.countDocuments(query)
     ]);
 
-    // Debug: Log photo URLs
+    // Debug: Log photo URLs and data structure
     items.forEach(item => {
       if (item.photo) {
         console.log(`📸 Item "${item.name}" has photo: ${item.photo}`);
       } else {
         console.log(`📷 Item "${item.name}" has no photo`);
       }
+      
+      // Debug category and ISBN data
+      console.log(`📚 Item "${item.name}":`, {
+        category: item.category,
+        isbn13: item.isbn13,
+        isbn10: item.isbn10,
+        publisher: item.publisher
+      });
     });
 
     const totalPages = Math.ceil(totalItems / limitNum);
@@ -152,7 +161,9 @@ router.get('/', authenticateToken, async (req, res) => {
 // GET item by ID
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const item = await Item.findById(req.params.id).populate('createdBy', 'username');
+    const item = await Item.findById(req.params.id)
+      .populate('createdBy', 'username')
+      .populate('category', 'name description');
     if (!item) {
       return res.status(404).json({ error: 'Item not found' });
     }
@@ -476,6 +487,9 @@ async function handleItemCreation(req, res) {
     const item = new Item(itemData);
     await item.save();
     
+    // Populate category data before returning
+    await item.populate('category', 'name description');
+    
     console.log('✅ Item saved successfully with ID:', item._id);
     console.log('✅ Item saved with photo:', item.photo);
 
@@ -623,7 +637,8 @@ router.put('/:id', authenticateToken, upload.single('photo'), async (req, res) =
       }
     }
 
-    const item = await Item.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    const item = await Item.findByIdAndUpdate(req.params.id, updateData, { new: true })
+      .populate('category', 'name description');
 
     // Create audit log
     await createAuditLog(
@@ -739,7 +754,9 @@ router.get('/reports/low-stock', authenticateToken, async (req, res) => {
   try {
     const items = await Item.find({
       $expr: { $lte: ['$quantity', '$lowStockThreshold'] }
-    }).sort({ quantity: 1 });
+    })
+      .populate('category', 'name description')
+      .sort({ quantity: 1 });
     
     res.json(items);
   } catch (error) {
@@ -751,7 +768,8 @@ router.get('/reports/low-stock', authenticateToken, async (req, res) => {
 // GET inventory value
 router.get('/reports/value', authenticateToken, async (req, res) => {
   try {
-    const items = await Item.find({});
+    const items = await Item.find({})
+      .populate('category', 'name description');
     
     const summary = {
       totalItems: items.length,
