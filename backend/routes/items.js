@@ -112,6 +112,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     const [items, totalItems] = await Promise.all([
       Item.find(query)
+        .populate('createdBy', 'username')
         .sort(sortOptions)
         .skip(skip)
         .limit(limitNum)
@@ -150,7 +151,7 @@ router.get('/', authenticateToken, async (req, res) => {
 // GET item by ID
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const item = await Item.findById(req.params.id);
+    const item = await Item.findById(req.params.id).populate('createdBy', 'username');
     if (!item) {
       return res.status(404).json({ error: 'Item not found' });
     }
@@ -243,7 +244,8 @@ router.post('/test-simple', authenticateToken, async (req, res) => {
     const itemData = {
       name,
       quantity: parseInt(quantity) || 0,
-      location: location || 'Test Location'
+      location: location || 'Test Location',
+      createdBy: req.user ? req.user.id : null
     };
     
     const item = new Item(itemData);
@@ -311,7 +313,8 @@ async function handleWithoutImageUpload(req, res) {
       barcode,
       location,
       notes,
-      customFields: customFields || {}
+      customFields: customFields || {},
+      createdBy: req.user.id
     };
 
     console.log('💾 Saving item to database (no image)...');
@@ -410,7 +413,8 @@ async function handleItemCreation(req, res) {
       barcode,
       location,
       notes,
-      customFields: parsedCustomFields
+      customFields: parsedCustomFields,
+      createdBy: req.user.id
     };
 
     // Handle Cloudinary upload manually if there's a file
