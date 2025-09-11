@@ -10,6 +10,7 @@ const { authenticateToken } = require('../middleware/auth');
 const Item = require('../models/Item');
 const Category = require('../models/Category');
 const CustomField = require('../models/CustomField');
+const cacheManager = require('../utils/cacheManager');
 
 // Configure multer for file uploads
 const upload = multer({
@@ -317,6 +318,10 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
         errors.push(`Row ${rowCount}: ${itemError.message}`);
       }
     }
+
+    // Clear categories cache since item counts have changed
+    const categoriesCacheKey = cacheManager.generateCategoriesKey();
+    cacheManager.delete(categoriesCacheKey);
 
     // Clean up uploaded file
     if (fs.existsSync(req.file.path)) {

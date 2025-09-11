@@ -175,6 +175,7 @@ function Categories() {
             <TableRow>
               <TableCell>Name</TableCell>
               <TableCell>Description</TableCell>
+              <TableCell align="center">Items</TableCell>
               <TableCell>Created</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
@@ -182,16 +183,45 @@ function Categories() {
           <TableBody>
             {categories.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} align="center">
+                <TableCell colSpan={5} align="center">
                   No categories yet. Click "Add Category" to create one.
                 </TableCell>
               </TableRow>
             ) : (
               categories.map((category) => (
                 <TableRow key={category._id}>
-                  <TableCell>{category.name}</TableCell>
-                  <TableCell>{category.description}</TableCell>
-                  <TableCell>{new Date(category.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {category.name}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      {category.description || 'No description'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        fontWeight: 600,
+                        color: category.itemCount > 0 ? 'primary.main' : 'text.secondary',
+                        backgroundColor: category.itemCount > 0 ? 'primary.light' : 'grey.100',
+                        borderRadius: 1,
+                        px: 1,
+                        py: 0.5,
+                        minWidth: '40px',
+                        display: 'inline-block'
+                      }}
+                    >
+                      {category.itemCount || 0}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      {new Date(category.createdAt).toLocaleDateString()}
+                    </Typography>
+                  </TableCell>
                   <TableCell align="right">
                     <IconButton
                       color="primary"

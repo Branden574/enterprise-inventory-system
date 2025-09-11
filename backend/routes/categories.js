@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 
 const Category = require('../models/Category');
+const Item = require('../models/Item');
 const { authenticateToken } = require('../middleware/auth');
 const auditLogger = require('../middleware/auditLogger');
 const cacheManager = require('../utils/cacheManager');
 
-// Get all categories with caching
+// Get all categories with item counts and caching
 router.get('/', async (req, res) => {
   try {
     const cacheKey = cacheManager.generateCategoriesKey();
@@ -18,14 +19,41 @@ router.get('/', async (req, res) => {
     }
 
     const startTime = Date.now();
-    const categories = await Category.find().lean().sort({ name: 1 });
+    
+    // Aggregate pipeline to get categories with item counts
+    const categoriesWithCounts = await Category.aggregate([
+      {
+        $lookup: {
+          from: 'items', // MongoDB collection name (lowercase and pluralized)
+          localField: '_id',
+          foreignField: 'category',
+          as: 'items'
+        }
+      },
+      {
+        $addFields: {
+          itemCount: { $size: '$items' }
+        }
+      },
+      {
+        $project: {
+          items: 0 // Don't include the actual items array, just the count
+        }
+      },
+      {
+        $sort: { name: 1 }
+      }
+    ]);
+    
     const queryTime = Date.now() - startTime;
+    console.log(`📊 Categories with counts loaded in ${queryTime}ms`);
     
-    // Cache for 10 minutes (categories change less frequently)
-    cacheManager.set(cacheKey, categories, 600000);
+    // Cache for 2 minutes (shorter cache since item counts change frequently)
+    cacheManager.set(cacheKey, categoriesWithCounts, 120000);
     
-    res.json(categories);
+    res.json(categoriesWithCounts);
   } catch (err) {
+    console.error('Error fetching categories with counts:', err);
     res.status(500).json({ error: err.message });
   }
 });

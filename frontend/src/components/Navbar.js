@@ -33,6 +33,7 @@ import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import PeopleIcon from '@mui/icons-material/People';
 import SecurityIcon from '@mui/icons-material/Security';
 import axios from '../utils/axios';
+import NotificationBell from './NotificationBell';
 
 function Navbar({ token, setToken }) {
   const navigate = useNavigate();
@@ -214,10 +215,9 @@ function Navbar({ token, setToken }) {
                 Admin
               </Button>
               
-              {/* Notifications */}
-              <IconButton color="inherit" component={Link} to="/notifications">
-                <NotificationsIcon />
-              </IconButton>
+              {/* Live Notifications Bell */}
+              <NotificationBell />
+              
               {/* Inventory Menu */}
               <Menu
                 anchorEl={menuAnchor.inventory}

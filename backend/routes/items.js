@@ -7,6 +7,7 @@ const Item = require('../models/Item');
 const { authenticateToken } = require('../middleware/auth');
 const AuditLog = require('../models/AuditLog');
 const socketService = require('../services/socketService');
+const cacheManager = require('../utils/cacheManager');
 
 // Configure memory storage instead of direct Cloudinary storage to avoid Railway signature issues
 const memoryStorage = multer.memoryStorage();
@@ -264,6 +265,10 @@ router.post('/test-simple', authenticateToken, async (req, res) => {
     const item = new Item(itemData);
     await item.save();
     
+    // Clear categories cache since item count has changed
+    const categoriesCacheKey = cacheManager.generateCategoriesKey();
+    cacheManager.delete(categoriesCacheKey);
+    
     res.status(201).json({
       success: true,
       message: 'Simple item created successfully',
@@ -357,6 +362,10 @@ async function handleWithoutImageUpload(req, res) {
     await item.save();
     
     console.log('✅ Item saved successfully:', item._id);
+
+    // Clear categories cache since item count has changed
+    const categoriesCacheKey = cacheManager.generateCategoriesKey();
+    cacheManager.delete(categoriesCacheKey);
 
     // Create audit log
     await createAuditLog(
@@ -531,6 +540,10 @@ async function handleItemCreation(req, res) {
     console.log('💾 Saving item to database...');
     const item = new Item(itemData);
     await item.save();
+    
+    // Clear categories cache since item count has changed
+    const categoriesCacheKey = cacheManager.generateCategoriesKey();
+    cacheManager.delete(categoriesCacheKey);
     
     // Populate category data before returning
     await item.populate('category', 'name description');
@@ -714,6 +727,10 @@ router.put('/:id', authenticateToken, upload.single('photo'), async (req, res) =
     const item = await Item.findByIdAndUpdate(req.params.id, updateData, { new: true })
       .populate('category', 'name description');
 
+    // Clear categories cache since item count may have changed (category changes)
+    const categoriesCacheKey = cacheManager.generateCategoriesKey();
+    cacheManager.delete(categoriesCacheKey);
+
     // Create audit log
     await createAuditLog(
       req.user, 
@@ -765,6 +782,10 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     await Item.findByIdAndDelete(req.params.id);
 
+    // Clear categories cache since item count has changed
+    const categoriesCacheKey = cacheManager.generateCategoriesKey();
+    cacheManager.delete(categoriesCacheKey);
+
     // Create audit log
     await createAuditLog(
       req.user, 
@@ -798,6 +819,10 @@ router.patch('/:id/quantity', authenticateToken, async (req, res) => {
     if (!item) {
       return res.status(404).json({ error: 'Item not found' });
     }
+
+    // Clear categories cache since quantities don't affect counts, but just to be safe
+    const categoriesCacheKey = cacheManager.generateCategoriesKey();
+    cacheManager.delete(categoriesCacheKey);
 
     // Create audit log
     await createAuditLog(
@@ -980,6 +1005,10 @@ router.delete('/bulk/all', authenticateToken, async (req, res) => {
 
     // Delete all items
     const result = await Item.deleteMany({});
+    
+    // Clear categories cache since all items were deleted
+    const categoriesCacheKey = cacheManager.generateCategoriesKey();
+    cacheManager.delete(categoriesCacheKey);
     
     // Log the action
     await AuditLog.create({
