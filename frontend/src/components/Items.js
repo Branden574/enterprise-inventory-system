@@ -36,6 +36,8 @@ function Items() {
   const [imagePreview, setImagePreview] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openTypeSelector, setOpenTypeSelector] = useState(false);
+  const [itemType, setItemType] = useState('item'); // 'item' or 'book'
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [customFieldsConfig, setCustomFieldsConfig] = useState([]);
   const [search, setSearch] = useState('');
@@ -163,8 +165,8 @@ function Items() {
     } else {
       const updatedForm = { ...form, [e.target.name]: e.target.value };
       
-      // Auto-generate name from title if name is empty
-      if (e.target.name === 'title' && !form.name) {
+      // Auto-generate name from title for books if name is empty
+      if (itemType === 'book' && e.target.name === 'title' && !form.name) {
         updatedForm.name = e.target.value;
       }
       
@@ -175,12 +177,19 @@ function Items() {
   const validateForm = () => {
     const errors = {};
     
-    // Updated validation for book inventory
-    if (!form.title.trim()) errors.title = 'Book title is required';
-    if (!form.isbn13.trim()) errors.isbn13 = 'ISBN-13 is required';
-    if (form.quantity < 0) errors.quantity = 'Quantity cannot be negative';
-    if (!form.location.trim()) errors.location = 'Location is required';
-    if (!form.status) errors.status = 'Status is required';
+    if (itemType === 'book') {
+      // Book validation
+      if (!form.title?.trim()) errors.title = 'Book title is required';
+      if (form.quantity < 0) errors.quantity = 'Quantity cannot be negative';
+      if (!form.location?.trim()) errors.location = 'Location is required';
+      if (!form.status) errors.status = 'Status is required';
+    } else {
+      // General item validation
+      if (!form.name?.trim()) errors.name = 'Item name is required';
+      if (form.quantity < 0) errors.quantity = 'Quantity cannot be negative';
+      if (!form.location?.trim()) errors.location = 'Location is required';
+      if (!form.status) errors.status = 'Status is required';
+    }
     
     // Category validation - if selected, must exist
     if (form.category) {
@@ -380,6 +389,11 @@ function Items() {
   };
 
   const handleEdit = item => {
+    // Determine if this is a book based on its properties
+    const isBook = !!(item.isbn13 || item.isbn10 || item.title || 
+      (item.category && categories.find(c => c._id === item.category)?.name?.toLowerCase().includes('book')));
+    
+    setItemType(isBook ? 'book' : 'item');
     setForm({
       ...item,
       photo: item.photo || null, // Keep the existing photo URL
@@ -515,6 +529,13 @@ function Items() {
   };
 
   const handleAddClick = () => {
+    setOpenTypeSelector(true);
+  };
+
+  const handleTypeSelection = (type) => {
+    setItemType(type);
+    setOpenTypeSelector(false);
+    
     // Initialize custom fields with their default values
     const defaultCustomFields = {};
     customFieldsConfig.filter(field => field && field.name).forEach(field => {
@@ -530,7 +551,8 @@ function Items() {
       notes: '', 
       category: '', 
       photo: null, 
-      customFields: defaultCustomFields 
+      customFields: defaultCustomFields,
+      status: 'available'
     });
     setImagePreview(null);
     setEditingId(null);
@@ -1120,7 +1142,7 @@ function Items() {
           fontSize: { xs: '1.25rem', sm: '1.5rem' },
           py: { xs: 1, sm: 2 }
         }}>
-          {editingId ? 'Edit Item' : 'Add Item'}
+          {editingId ? `Edit ${itemType === 'book' ? 'Book' : 'Item'}` : `Add ${itemType === 'book' ? 'Book' : 'Item'}`}
         </DialogTitle>
         <DialogContent sx={{ px: { xs: 2, sm: 3 } }}>
           <form id="item-form" onSubmit={handleSubmit} encType="multipart/form-data">
@@ -1128,9 +1150,9 @@ function Items() {
               {/* Essential Fields */}
               <Grid item xs={12}>
                 <TextField 
-                  name="name" 
-                  label="Item Name *" 
-                  value={form.name || form.title || ''} 
+                  name={itemType === 'book' ? 'title' : 'name'}
+                  label={itemType === 'book' ? 'Book Title *' : 'Item Name *'}
+                  value={itemType === 'book' ? (form.title || '') : (form.name || form.title || '')} 
                   onChange={handleChange} 
                   required
                   fullWidth 
@@ -1138,6 +1160,22 @@ function Items() {
                   size={{ xs: 'small', sm: 'medium' }}
                 />
               </Grid>
+              
+              {/* Show ISBN field for books */}
+              {itemType === 'book' && (
+                <Grid item xs={12}>
+                  <TextField 
+                    name="isbn13" 
+                    label="ISBN-13" 
+                    value={form.isbn13 || ''} 
+                    onChange={handleChange} 
+                    fullWidth 
+                    margin="normal"
+                    placeholder="978-1-234-56789-0"
+                    size={{ xs: 'small', sm: 'medium' }}
+                  />
+                </Grid>
+              )}
               
               <Grid item xs={12} sm={6}>
                 <TextField 
@@ -1252,8 +1290,8 @@ function Items() {
                 />
               </Grid>
 
-              {/* Book-specific fields - Only show if it's a book or has ISBN */}
-              {(form.isbn13 || form.isbn10 || form.title || (form.category && categories.find(c => c._id === form.category)?.name?.toLowerCase().includes('book'))) && (
+              {/* Book-specific fields - Only show when itemType is 'book' */}
+              {itemType === 'book' && (
                 <>
                   <Grid item xs={12}>
                     <Typography 
@@ -1267,31 +1305,6 @@ function Items() {
                     >
                       Book Information
                     </Typography>
-                  </Grid>
-                  
-                  <Grid item xs={12}>
-                    <TextField 
-                      name="title" 
-                      label="Book Title" 
-                      value={form.title || ''} 
-                      onChange={handleChange} 
-                      fullWidth 
-                      margin="normal"
-                      size={{ xs: 'small', sm: 'medium' }}
-                    />
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6}>
-                    <TextField 
-                      name="isbn13" 
-                      label="ISBN-13" 
-                      value={form.isbn13 || ''} 
-                      onChange={handleChange} 
-                      fullWidth 
-                      margin="normal"
-                      placeholder="978-1-234-56789-0"
-                      size={{ xs: 'small', sm: 'medium' }}
-                    />
                   </Grid>
                   
                   <Grid item xs={12} sm={6}>
@@ -1510,6 +1523,112 @@ function Items() {
         onScanResult={handleScanResult}
         title={scanMode === 'search' ? 'Scan to Search Item' : 'Scan to Add Barcode'}
       />
+
+      {/* Item Type Selector Dialog */}
+      <Dialog 
+        open={openTypeSelector} 
+        onClose={() => setOpenTypeSelector(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            animation: openTypeSelector ? 'fadeInUp 0.3s ease-out' : 'none',
+            '@keyframes fadeInUp': {
+              '0%': {
+                opacity: 0,
+                transform: 'translateY(30px) scale(0.9)'
+              },
+              '100%': {
+                opacity: 1,
+                transform: 'translateY(0) scale(1)'
+              }
+            }
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          textAlign: 'center',
+          pb: 1,
+          fontSize: { xs: '1.25rem', sm: '1.5rem' }
+        }}>
+          What would you like to add?
+        </DialogTitle>
+        <DialogContent sx={{ px: { xs: 2, sm: 3 }, pb: 2 }}>
+          <Grid container spacing={2} justifyContent="center">
+            <Grid item xs={12} sm={6}>
+              <Button
+                variant="contained"
+                size="large"
+                fullWidth
+                onClick={() => handleTypeSelection('item')}
+                sx={{
+                  py: 3,
+                  borderRadius: 2,
+                  background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                  fontSize: { xs: '1rem', sm: '1.1rem' },
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1,
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 8px 25px rgba(33, 150, 243, 0.3)',
+                    transition: 'all 0.2s ease-in-out'
+                  }
+                }}
+                startIcon={
+                  <Box sx={{ fontSize: '2rem' }}>📦</Box>
+                }
+              >
+                <Box>General Item</Box>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                  Office supplies, equipment, materials, etc.
+                </Typography>
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Button
+                variant="contained"
+                size="large"
+                fullWidth
+                onClick={() => handleTypeSelection('book')}
+                sx={{
+                  py: 3,
+                  borderRadius: 2,
+                  background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E8E 90%)',
+                  fontSize: { xs: '1rem', sm: '1.1rem' },
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1,
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 8px 25px rgba(255, 107, 107, 0.3)',
+                    transition: 'all 0.2s ease-in-out'
+                  }
+                }}
+                startIcon={
+                  <Box sx={{ fontSize: '2rem' }}>📚</Box>
+                }
+              >
+                <Box>Book</Box>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                  Textbooks, novels, reference materials
+                </Typography>
+              </Button>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+          <Button 
+            onClick={() => setOpenTypeSelector(false)}
+            sx={{ minWidth: 100 }}
+          >
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
