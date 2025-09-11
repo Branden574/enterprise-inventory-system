@@ -27,7 +27,15 @@ const ItemSchema = new mongoose.Schema({
   cases: { type: Number, default: 0, min: 0 },
   caseQty: { type: Number, default: 0, min: 0 },
   total: { type: Number, default: 0, min: 0 }, // Calculated or imported total
-  status: { type: String, enum: ['active', 'discontinued', 'on-order', 'backordered', 'available'], default: 'active' },
+  status: { 
+    type: String, 
+    enum: [
+      'active', 'available', 'discontinued', 'on-order', 'backordered',
+      'Available', 'Low Stock', 'Out of Stock', 'Ordered', 'Discontinued',
+      'low-stock', 'out-of-stock', 'in-stock', 'ordered'
+    ], 
+    default: 'available' 
+  },
   statusColor: { type: String, trim: true }, // For color coding like in your Excel
   publisher: { type: String, trim: true },
   edition: { type: String, trim: true },

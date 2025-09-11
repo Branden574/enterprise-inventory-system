@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../utils/axios';
 import {
-  Button, TextField, Select, MenuItem, InputLabel, FormControl, Card, CardContent, CardActions, Typography, Grid, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Fab, Snackbar, Alert, Box
+  Button, TextField, Select, MenuItem, InputLabel, FormControl, Card, CardContent, CardActions, Typography, Grid, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Fab, Snackbar, Alert, Box, Pagination
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -44,6 +44,10 @@ function Items() {
   const [loading, setLoading] = useState(true);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanMode, setScanMode] = useState('search'); // 'search' or 'add'
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 30;
 
   useEffect(() => {
     Promise.all([
@@ -133,17 +137,26 @@ function Items() {
       const key = e.target.name.replace('customField_', '');
       setForm({ ...form, customFields: { ...form.customFields, [key]: e.target.value } });
     } else {
-      setForm({ ...form, [e.target.name]: e.target.value });
+      const updatedForm = { ...form, [e.target.name]: e.target.value };
+      
+      // Auto-generate name from title if name is empty
+      if (e.target.name === 'title' && !form.name) {
+        updatedForm.name = e.target.value;
+      }
+      
+      setForm(updatedForm);
     }
   };
 
   const validateForm = () => {
     const errors = {};
     
-    // Basic field validation
-    if (!form.name.trim()) errors.name = 'Name is required';
-    if (form.quantity < 1) errors.quantity = 'Quantity must be at least 1';
+    // Updated validation for book inventory
+    if (!form.title.trim()) errors.title = 'Book title is required';
+    if (!form.isbn13.trim()) errors.isbn13 = 'ISBN-13 is required';
+    if (form.quantity < 0) errors.quantity = 'Quantity cannot be negative';
     if (!form.location.trim()) errors.location = 'Location is required';
+    if (!form.status) errors.status = 'Status is required';
     
     // Category validation - if selected, must exist
     if (form.category) {
@@ -188,6 +201,11 @@ function Items() {
   const handleSubmit = async e => {
     e.preventDefault();
     
+    // Auto-generate name from title if name is empty
+    if (!form.name.trim() && form.title.trim()) {
+      setForm(prev => ({ ...prev, name: form.title }));
+    }
+    
     if (!validateForm()) {
       setSnackbar({ 
         open: true, 
@@ -203,36 +221,40 @@ function Items() {
         throw new Error('No authentication token found');
       }
 
+      // Ensure name is set from title if not provided
+      const finalForm = {
+        ...form,
+        name: form.name.trim() || form.title.trim()
+      };
+
       let response;
 
       // If there's a photo, use FormData (multipart)
-      if (form.photo) {
+      if (finalForm.photo) {
         console.log('📸 Uploading with image...');
         const data = new FormData();
         
-        // Log all form data being sent
-        console.log('📋 Form data being prepared:', {
-          name: form.name,
-          quantity: form.quantity,
-          location: form.location,
-          category: form.category,
-          photo: form.photo ? form.photo.name : 'none'
-        });
+        // Only add essential fields to avoid "too many parts" error
+        const essentialFields = [
+          'name', 'title', 'quantity', 'location', 'category', 'notes',
+          'isbn13', 'isbn10', 'publisher', 'edition', 'status'
+        ];
 
-        Object.entries(form).forEach(([key, value]) => {
-          if (key === 'customFields') {
-            data.append('customFields', JSON.stringify(value));
-            console.log('📋 Added customFields:', JSON.stringify(value));
-          } else if (value !== null && value !== undefined && value !== '') {
-            data.append(key, value);
-            console.log(`📋 Added ${key}:`, typeof value === 'object' ? value.name || '[File]' : value);
+        essentialFields.forEach(key => {
+          if (finalForm[key] && finalForm[key] !== '') {
+            data.append(key, finalForm[key]);
+            console.log(`📋 Added ${key}:`, finalForm[key]);
           }
         });
 
-        // Log FormData contents
-        console.log('📋 FormData entries:');
-        for (let pair of data.entries()) {
-          console.log(`  ${pair[0]}:`, pair[1]);
+        // Add photo
+        data.append('photo', finalForm.photo);
+        console.log('📋 Added photo:', finalForm.photo.name);
+
+        // Add customFields if present
+        if (finalForm.customFields && Object.keys(finalForm.customFields).length > 0) {
+          data.append('customFields', JSON.stringify(finalForm.customFields));
+          console.log('📋 Added customFields:', JSON.stringify(finalForm.customFields));
         }
 
         const config = {
@@ -251,27 +273,23 @@ function Items() {
         // No photo, use JSON
         console.log('📝 Uploading without image...');
         const jsonData = {
-          name: form.name,
-          title: form.title,
-          description: form.description,
-          category: form.category,
-          quantity: form.quantity,
-          lowStockThreshold: form.lowStockThreshold,
-          barcode: form.barcode,
-          location: form.location,
-          notes: form.notes,
-          customFields: form.customFields,
-          isbn13: form.isbn13,
-          isbn10: form.isbn10,
-          cases: form.cases,
-          caseQty: form.caseQty,
-          total: form.total,
-          status: form.status,
-          publisher: form.publisher,
-          edition: form.edition,
-          subject: form.subject,
-          gradeLevel: form.gradeLevel
+          name: finalForm.name,
+          title: finalForm.title,
+          category: finalForm.category,
+          quantity: finalForm.quantity,
+          location: finalForm.location,
+          notes: finalForm.notes,
+          isbn13: finalForm.isbn13,
+          status: finalForm.status
         };
+
+        // Add optional fields only if they have values
+        if (finalForm.isbn10) jsonData.isbn10 = finalForm.isbn10;
+        if (finalForm.publisher) jsonData.publisher = finalForm.publisher;
+        if (finalForm.edition) jsonData.edition = finalForm.edition;
+        if (finalForm.customFields && Object.keys(finalForm.customFields).length > 0) {
+          jsonData.customFields = finalForm.customFields;
+        }
 
         console.log('📋 JSON data being sent:', jsonData);
 
@@ -404,12 +422,16 @@ function Items() {
   };
 
   // Filter items by search and category
+  // Filter, sort, and paginate items
   const filteredItems = (Array.isArray(items) ? items : []).filter(item => {
     const searchLower = search.toLowerCase();
     const matchesSearch = (
       item.name?.toLowerCase().includes(searchLower) ||
+      item.title?.toLowerCase().includes(searchLower) ||
+      item.isbn13?.toLowerCase().includes(searchLower) ||
       item.location?.toLowerCase().includes(searchLower) ||
       item.notes?.toLowerCase().includes(searchLower) ||
+      item.publisher?.toLowerCase().includes(searchLower) ||
       (item.category?.name?.toLowerCase().includes(searchLower))
     );
     
@@ -417,6 +439,30 @@ function Items() {
     
     return matchesSearch && matchesCategory;
   });
+
+  // Sort items alphabetically by title, then by name
+  const sortedItems = filteredItems.sort((a, b) => {
+    const titleA = (a.title || a.name || '').toLowerCase();
+    const titleB = (b.title || b.name || '').toLowerCase();
+    return titleA.localeCompare(titleB);
+  });
+
+  // Calculate pagination
+  const totalPages = Math.ceil(sortedItems.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedItems = sortedItems.slice(startIndex, startIndex + itemsPerPage);
+
+  // Handle page change
+  const handlePageChange = (event, value) => {
+    setCurrentPage(value);
+    // Scroll to top when changing pages
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Reset to page 1 when search or filter changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search, categoryFilter]);
 
   // Barcode scanning functions
   const handleBarcodeSearch = (code) => {
@@ -551,7 +597,7 @@ function Items() {
         </Box>
       </Box>
       
-      {filteredItems.length === 0 ? (
+      {sortedItems.length === 0 ? (
         <Box sx={{ mt: 8, textAlign: 'center' }}>
           <Typography variant="h6" color="text.secondary" gutterBottom>
             No items found.
@@ -561,50 +607,80 @@ function Items() {
           </Typography>
         </Box>
       ) : (
-        <Grid container spacing={3} justifyContent="center">
-          {filteredItems.map(item => (
-            <Grid item xs={12} sm={6} md={4} key={item._id} id={`item-${item._id}`}>
-              <Card sx={{ boxShadow: 4, borderRadius: 3, transition: '0.2s', '&:hover': { boxShadow: 8, transform: 'translateY(-4px) scale(1.03)' } }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    {item.photo && <img src={item.photo} alt={item.name} style={{ maxWidth: 160, maxHeight: 120, borderRadius: 8, marginBottom: 8 }} />}
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>{item.name}</Typography>
-                    {item.title && <Typography color="text.secondary" sx={{ fontStyle: 'italic' }}>{item.title}</Typography>}
-                    {item.isbn13 && <Typography color="text.secondary" variant="body2">ISBN-13: {item.isbn13}</Typography>}
-                    {item.publisher && <Typography color="text.secondary" variant="body2">Publisher: {item.publisher}</Typography>}
-                    <Typography color="text.secondary">Qty: {item.quantity}</Typography>
-                    {item.cases > 0 && <Typography color="text.secondary">Cases: {item.cases} (Qty per case: {item.caseQty})</Typography>}
-                    <Typography color="text.secondary">Location: {item.location}</Typography>
-                    <Typography color="text.secondary">Category: {item.category?.name || 'None'}</Typography>
-                    {item.status && (
-                      <Typography 
-                        color={
-                          item.status === 'Available' ? 'success.main' :
-                          item.status === 'Low Stock' ? 'warning.main' :
-                          item.status === 'Out of Stock' ? 'error.main' :
-                          'text.secondary'
-                        }
-                        sx={{ fontWeight: 500 }}
-                      >
-                        Status: {item.status}
-                      </Typography>
-                    )}
-                    {item.subject && <Typography color="text.secondary" variant="body2">Subject: {item.subject}</Typography>}
-                    {item.gradeLevel && <Typography color="text.secondary" variant="body2">Grade: {item.gradeLevel}</Typography>}
-                    <Typography color="text.secondary">Notes: {item.notes}</Typography>
-                    {item.customFields && Object.entries(item.customFields).map(([key, value]) => (
-                      <Typography color="text.secondary" key={key}>{key}: {value}</Typography>
-                    ))}
-                  </Box>
-                </CardContent>
-                <CardActions sx={{ justifyContent: 'center' }}>
-                  <IconButton color="primary" onClick={() => handleEdit(item)}><EditIcon /></IconButton>
-                  <IconButton color="error" onClick={() => handleDelete(item._id)}><DeleteIcon /></IconButton>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+        <>
+          {/* Pagination info */}
+          <Box sx={{ mb: 2, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, sortedItems.length)} of {sortedItems.length} items
+              {totalPages > 1 && ` • Page ${currentPage} of ${totalPages}`}
+            </Typography>
+          </Box>
+          
+          <Grid container spacing={3} justifyContent="center">
+            {paginatedItems.map(item => (
+              <Grid item xs={12} sm={6} md={4} key={item._id} id={`item-${item._id}`}>
+                <Card sx={{ boxShadow: 4, borderRadius: 3, transition: '0.2s', '&:hover': { boxShadow: 8, transform: 'translateY(-4px) scale(1.03)' } }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      {item.photo && <img src={item.photo} alt={item.name} style={{ maxWidth: 160, maxHeight: 120, borderRadius: 8, marginBottom: 8 }} />}
+                      <Typography variant="h6" sx={{ fontWeight: 600 }}>{item.name}</Typography>
+                      {item.title && <Typography color="text.secondary" sx={{ fontStyle: 'italic' }}>{item.title}</Typography>}
+                      {item.isbn13 && <Typography color="text.secondary" variant="body2">ISBN-13: {item.isbn13}</Typography>}
+                      {item.publisher && <Typography color="text.secondary" variant="body2">Publisher: {item.publisher}</Typography>}
+                      <Typography color="text.secondary">Qty: {item.quantity}</Typography>
+                      {item.cases > 0 && <Typography color="text.secondary">Cases: {item.cases} (Qty per case: {item.caseQty})</Typography>}
+                      <Typography color="text.secondary">Location: {item.location}</Typography>
+                      <Typography color="text.secondary">Category: {item.category?.name || 'None'}</Typography>
+                      {item.status && (
+                        <Typography 
+                          color={
+                            item.status === 'Available' || item.status === 'available' ? 'success.main' :
+                            item.status === 'Low Stock' || item.status === 'low-stock' ? 'warning.main' :
+                            item.status === 'Out of Stock' || item.status === 'out-of-stock' ? 'error.main' :
+                            'text.secondary'
+                          }
+                          sx={{ fontWeight: 500 }}
+                        >
+                          Status: {item.status}
+                        </Typography>
+                      )}
+                      {item.subject && <Typography color="text.secondary" variant="body2">Subject: {item.subject}</Typography>}
+                      {item.gradeLevel && <Typography color="text.secondary" variant="body2">Grade: {item.gradeLevel}</Typography>}
+                      <Typography color="text.secondary">Notes: {item.notes}</Typography>
+                      {item.customFields && Object.entries(item.customFields).map(([key, value]) => (
+                        <Typography color="text.secondary" key={key}>{key}: {value}</Typography>
+                      ))}
+                    </Box>
+                  </CardContent>
+                  <CardActions sx={{ justifyContent: 'center' }}>
+                    <IconButton color="primary" onClick={() => handleEdit(item)}><EditIcon /></IconButton>
+                    <IconButton color="error" onClick={() => handleDelete(item._id)}><DeleteIcon /></IconButton>
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+              <Pagination 
+                count={totalPages} 
+                page={currentPage} 
+                onChange={handlePageChange}
+                color="primary"
+                size="large"
+                showFirstButton
+                showLastButton
+                sx={{
+                  '& .MuiPaginationItem-root': {
+                    fontSize: '1rem',
+                  }
+                }}
+              />
+            </Box>
+          )}
+        </>
       )}
       <Fab color="primary" aria-label="add" onClick={handleAddClick} sx={{ position: 'fixed', bottom: 32, right: 32, zIndex: 100 }}>
         <AddIcon />
@@ -614,56 +690,39 @@ function Items() {
         <DialogContent>
           <form id="item-form" onSubmit={handleSubmit} encType="multipart/form-data">
             <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} sm={8}>
-                <TextField 
-                  name="name" 
-                  label="Name" 
-                  value={form.name} 
-                  onChange={handleChange} 
-                  required 
-                  fullWidth 
-                  margin="normal"
-                  error={!!formErrors.name}
-                  helperText={formErrors.name}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
+              {/* Essential Fields */}
+              <Grid item xs={12}>
                 <TextField 
                   name="title" 
-                  label="Title" 
+                  label="Book Title *" 
                   value={form.title} 
                   onChange={handleChange} 
+                  required
                   fullWidth 
                   margin="normal"
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              
+              <Grid item xs={12} sm={8}>
                 <TextField 
                   name="isbn13" 
-                  label="ISBN-13" 
+                  label="ISBN-13 *" 
                   value={form.isbn13} 
                   onChange={handleChange} 
+                  required
                   fullWidth 
                   margin="normal"
+                  placeholder="978-1-234-56789-0"
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField 
-                  name="isbn10" 
-                  label="ISBN-10" 
-                  value={form.isbn10} 
-                  onChange={handleChange} 
-                  fullWidth 
-                  margin="normal"
-                />
-              </Grid>
+              
               <Grid item xs={12} sm={4}>
                 <TextField 
                   name="quantity" 
-                  label="Quantity" 
+                  label="Quantity Available *" 
                   type="number" 
                   inputProps={{ 
-                    min: "1",
+                    min: "0",
                     style: { textAlign: 'center' }
                   }}
                   value={form.quantity} 
@@ -673,119 +732,25 @@ function Items() {
                   margin="normal"
                   error={!!formErrors.quantity}
                   helperText={formErrors.quantity}
-                  sx={{ 
-                    '& .MuiInputBase-root': {
-                      height: '56px'
-                    },
-                    '& .MuiOutlinedInput-input': {
-                      height: '23px',
-                      padding: '16.5px 14px'
-                    }
-                  }}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField 
-                  name="cases" 
-                  label="Cases" 
-                  type="number" 
-                  inputProps={{ 
-                    min: "0",
-                    style: { textAlign: 'center' }
-                  }}
-                  value={form.cases} 
-                  onChange={handleChange} 
-                  fullWidth
-                  margin="normal"
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField 
-                  name="caseQty" 
-                  label="Case Qty" 
-                  type="number" 
-                  inputProps={{ 
-                    min: "0",
-                    style: { textAlign: 'center' }
-                  }}
-                  value={form.caseQty} 
-                  onChange={handleChange} 
-                  fullWidth
-                  margin="normal"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField 
-                  name="publisher" 
-                  label="Publisher" 
-                  value={form.publisher} 
-                  onChange={handleChange} 
-                  fullWidth 
-                  margin="normal"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField 
-                  name="edition" 
-                  label="Edition" 
-                  value={form.edition} 
-                  onChange={handleChange} 
-                  fullWidth 
-                  margin="normal"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField 
-                  name="subject" 
-                  label="Subject" 
-                  value={form.subject} 
-                  onChange={handleChange} 
-                  fullWidth 
-                  margin="normal"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField 
-                  name="gradeLevel" 
-                  label="Grade Level" 
-                  value={form.gradeLevel} 
-                  onChange={handleChange} 
-                  fullWidth 
-                  margin="normal"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth margin="normal">
-                  <InputLabel>Status</InputLabel>
-                  <Select 
-                    name="status" 
-                    value={form.status} 
-                    onChange={handleChange} 
-                    label="Status"
-                  >
-                    <MenuItem value=""><em>None</em></MenuItem>
-                    <MenuItem value="Available">Available</MenuItem>
-                    <MenuItem value="Low Stock">Low Stock</MenuItem>
-                    <MenuItem value="Out of Stock">Out of Stock</MenuItem>
-                    <MenuItem value="Ordered">Ordered</MenuItem>
-                    <MenuItem value="Discontinued">Discontinued</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
+              
               <Grid item xs={12} sm={6}>
                 <TextField 
                   name="location" 
-                  label="Location" 
+                  label="Location *" 
                   value={form.location} 
                   onChange={handleChange} 
                   fullWidth 
                   required
+                  margin="normal"
                   error={!!formErrors.location}
                   helperText={formErrors.location}
                 />
               </Grid>
+              
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth error={!!formErrors.category}>
+                <FormControl fullWidth margin="normal" error={!!formErrors.category}>
                   <InputLabel>Category</InputLabel>
                   <Select 
                     name="category" 
@@ -805,8 +770,69 @@ function Items() {
                   )}
                 </FormControl>
               </Grid>
+              
               <Grid item xs={12}>
-                <TextField name="notes" label="Notes" value={form.notes} onChange={handleChange} fullWidth multiline rows={3} />
+                <FormControl fullWidth margin="normal">
+                  <InputLabel>Status *</InputLabel>
+                  <Select 
+                    name="status" 
+                    value={form.status} 
+                    onChange={handleChange} 
+                    label="Status"
+                    required
+                  >
+                    <MenuItem value="available">Available</MenuItem>
+                    <MenuItem value="low-stock">Low Stock</MenuItem>
+                    <MenuItem value="out-of-stock">Out of Stock</MenuItem>
+                    <MenuItem value="ordered">Ordered</MenuItem>
+                    <MenuItem value="discontinued">Discontinued</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* Optional Fields - Collapsible */}
+              <Grid item xs={12}>
+                <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, color: 'text.secondary' }}>
+                  Optional Information
+                </Typography>
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField 
+                  name="publisher" 
+                  label="Publisher (Optional)" 
+                  value={form.publisher} 
+                  onChange={handleChange} 
+                  fullWidth 
+                  margin="normal"
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField 
+                  name="edition" 
+                  label="Edition (Optional)" 
+                  value={form.edition} 
+                  onChange={handleChange} 
+                  fullWidth 
+                  margin="normal"
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField 
+                  name="name" 
+                  label="Internal Name (Optional)" 
+                  value={form.name} 
+                  onChange={handleChange} 
+                  fullWidth 
+                  margin="normal"
+                  helperText="Leave blank to auto-generate from title"
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <TextField name="notes" label="Notes (Optional)" value={form.notes} onChange={handleChange} fullWidth multiline rows={2} />
               </Grid>
                 {customFieldsConfig.map((field, idx) => (
                   <Grid item xs={12} key={idx}>
