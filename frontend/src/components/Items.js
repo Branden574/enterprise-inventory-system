@@ -12,6 +12,7 @@ import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import BarcodeScanner from './BarcodeScanner';
 
 function Items() {
+  console.log('🚀 Items component loaded - Version 1.0.2 with TYPE SELECTOR');
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState({ 
