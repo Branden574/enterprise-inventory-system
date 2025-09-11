@@ -93,7 +93,20 @@ function ItemsEnhanced() {
       const res = await axios.get('/api/items');
       const itemsData = res.data.items || res.data || [];
       const realItemsArray = Array.isArray(itemsData) ? itemsData : [];
+      
+      // Debug: Log first few items to see data structure
       console.log('✅ Items loaded:', realItemsArray.length);
+      if (realItemsArray.length > 0) {
+        console.log('🔍 Sample item data:', {
+          name: realItemsArray[0].name,
+          category: realItemsArray[0].category,
+          isbn13: realItemsArray[0].isbn13,
+          isbn10: realItemsArray[0].isbn10,
+          publisher: realItemsArray[0].publisher,
+          photo: realItemsArray[0].photo
+        });
+      }
+      
       setItems(realItemsArray);
     } catch (err) {
       console.error('❌ Items error:', err);
