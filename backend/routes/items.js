@@ -599,105 +599,58 @@ async function handleItemCreation(req, res) {
 // PUT update item with optional image upload
 router.put('/:id', authenticateToken, upload.single('photo'), async (req, res) => {
   try {
+    console.log('🔍 PUT route called for item:', req.params.id);
+    console.log('🔍 Has file:', !!req.file);
+    console.log('🔍 Body keys:', Object.keys(req.body));
+    
     const existingItem = await Item.findById(req.params.id);
     if (!existingItem) {
-      // Clean up uploaded image if item doesn't exist
-      if (req.file && req.file.filename) {
-        try {
-          await cloudinary.uploader.destroy(req.file.filename);
-        } catch (cleanupError) {
-          console.error('Failed to clean up uploaded image:', cleanupError);
-        }
-      }
+      console.log('❌ Item not found:', req.params.id);
       return res.status(404).json({ error: 'Item not found' });
     }
 
-    const {
-      name,
-      description,
-      category,
-      quantity,
-      lowStockThreshold,
-      barcode,
-      customFields,
-      // Book-specific fields
-      isbn13,
-      isbn10,
-      title,
-      publisher,
-      edition,
-      status,
-      subject,
-      gradeLevel,
-      location,
-      notes,
-      minimumQuantity,
-      alertEnabled
-    } = req.body;
+    console.log('✅ Item found:', existingItem.name);
 
-    // Parse customFields if it's a string
-    let parsedCustomFields = {};
-    if (customFields) {
-      try {
-        parsedCustomFields = typeof customFields === 'string' 
-          ? JSON.parse(customFields) 
-          : customFields;
-      } catch (e) {
-        console.error('Error parsing customFields:', e);
-        parsedCustomFields = existingItem.customFields || {};
-      }
-    }
-
+    // Start with basic fields only
     const updateData = {
-      name: name || existingItem.name,
-      description: description || existingItem.description,
-      category: category || existingItem.category,
-      quantity: quantity !== undefined ? parseInt(quantity) : existingItem.quantity,
-      lowStockThreshold: lowStockThreshold !== undefined ? parseInt(lowStockThreshold) : existingItem.lowStockThreshold,
-      barcode: barcode || existingItem.barcode,
-      customFields: parsedCustomFields,
-      // Book-specific fields
-      isbn13: isbn13 || existingItem.isbn13,
-      isbn10: isbn10 || existingItem.isbn10,
-      title: title || existingItem.title,
-      publisher: publisher || existingItem.publisher,
-      edition: edition || existingItem.edition,
-      status: status || existingItem.status,
-      subject: subject || existingItem.subject,
-      gradeLevel: gradeLevel || existingItem.gradeLevel,
-      location: location || existingItem.location,
-      notes: notes || existingItem.notes,
-      minimumQuantity: minimumQuantity !== undefined ? parseInt(minimumQuantity) : existingItem.minimumQuantity,
-      alertEnabled: alertEnabled !== undefined ? alertEnabled : existingItem.alertEnabled
+      name: req.body.name || existingItem.name,
+      quantity: req.body.quantity ? parseInt(req.body.quantity) : existingItem.quantity,
+      location: req.body.location || existingItem.location,
+      isbn13: req.body.isbn13 || existingItem.isbn13,
+      title: req.body.title || existingItem.title,
+      publisher: req.body.publisher || existingItem.publisher,
+      status: req.body.status || existingItem.status,
+      notes: req.body.notes || existingItem.notes
     };
 
-    // Handle new image upload
+    console.log('📝 Update data prepared');
+
+    // Handle image upload if present
     if (req.file) {
       try {
-        console.log('📸 Processing image upload for item update...');
-        console.log('🧪 File details:', {
+        console.log('📸 Processing image upload...');
+        console.log('📸 File details:', {
           originalname: req.file.originalname,
           mimetype: req.file.mimetype,
           size: req.file.size
         });
         
-        // Delete old image from Cloudinary if it exists
+        // Delete old image if exists
         if (existingItem.photoPublicId) {
           try {
             await cloudinary.uploader.destroy(existingItem.photoPublicId);
-            console.log('🗑️ Old image deleted:', existingItem.photoPublicId);
+            console.log('🗑️ Old image deleted');
           } catch (deleteError) {
-            console.error('Failed to delete old image from Cloudinary:', deleteError);
+            console.error('Failed to delete old image:', deleteError);
           }
         }
         
-        // Manual upload to Cloudinary - simplified working version
+        // Upload new image
+        console.log('☁️ Starting Cloudinary upload...');
         const uploadResult = await new Promise((resolve, reject) => {
           const timestamp = Math.floor(Date.now() / 1000);
           const random = Math.round(Math.random() * 1E9);
           const publicId = `item-${timestamp}-${random}`;
-          
-          console.log('☁️ Cloudinary upload starting...');
           
           const uploadStream = cloudinary.uploader.upload_stream(
             {
@@ -707,10 +660,10 @@ router.put('/:id', authenticateToken, upload.single('photo'), async (req, res) =
             },
             (error, result) => {
               if (error) {
-                console.error('❌ Cloudinary upload error:', error);
+                console.error('❌ Cloudinary error:', error);
                 reject(error);
               } else {
-                console.log('✅ Cloudinary upload successful:', result.public_id);
+                console.log('✅ Cloudinary success:', result.public_id);
                 resolve(result);
               }
             }
@@ -719,17 +672,12 @@ router.put('/:id', authenticateToken, upload.single('photo'), async (req, res) =
           uploadStream.end(req.file.buffer);
         });
         
-        // Set new image data
         updateData.photo = uploadResult.secure_url;
         updateData.photoPublicId = uploadResult.public_id;
-        
-        console.log('📸 Photo data updated:', {
-          photo: updateData.photo,
-          photoPublicId: updateData.photoPublicId
-        });
+        console.log('📸 Image data added to update');
         
       } catch (uploadError) {
-        console.error('❌ Failed to upload image to Cloudinary:', uploadError);
+        console.error('❌ Image upload failed:', uploadError);
         return res.status(500).json({ 
           error: 'Failed to upload image', 
           details: uploadError.message 
@@ -737,40 +685,19 @@ router.put('/:id', authenticateToken, upload.single('photo'), async (req, res) =
       }
     }
 
+    console.log('💾 Updating item in database...');
     const item = await Item.findByIdAndUpdate(req.params.id, updateData, { new: true })
       .populate('category', 'name description');
 
-    // Clear categories cache since item count may have changed (category changes)
-    const categoriesCacheKey = cacheManager.generateCategoriesKey();
-    cacheManager.delete(categoriesCacheKey);
-
-    // Create audit log
-    await createAuditLog(
-      req.user, 
-      'UPDATE', 
-      item.name, 
-      `Updated item. New quantity: ${item.quantity}`
-    );
-
-    // Check if item is now low stock and send notification
-    if (item.quantity <= 5 && item.alertEnabled !== false) {
-      socketService.notifyLowStock(item);
-    }
-
+    console.log('✅ Item updated successfully');
     res.json(item);
+    
   } catch (error) {
-    console.error('Error updating item:', error);
-    
-    // Clean up uploaded image if update failed
-    if (req.file && req.file.filename) {
-      try {
-        await cloudinary.uploader.destroy(req.file.filename);
-      } catch (cleanupError) {
-        console.error('Failed to clean up uploaded image:', cleanupError);
-      }
-    }
-    
-    res.status(500).json({ error: 'Failed to update item' });
+    console.error('❌ PUT route error:', {
+      message: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({ error: 'Failed to update item', details: error.message });
   }
 });
 
