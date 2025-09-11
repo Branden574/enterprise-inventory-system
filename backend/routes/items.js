@@ -15,8 +15,8 @@ const memoryStorage = multer.memoryStorage();
 const upload = multer({ 
   storage: memoryStorage, // Store in memory first, then upload to Cloudinary manually
   limits: {
-    fileSize: 2 * 1024 * 1024, // Reduced to 2MB for Railway memory constraints
-    fieldSize: 1 * 1024 * 1024, // 1MB field limit to reduce memory usage
+    fileSize: 5 * 1024 * 1024, // Back to 5MB - Railway can handle this
+    fieldSize: 2 * 1024 * 1024, // 2MB field limit
     fields: 20, // Increased field limit
     parts: 25 // Increased parts limit to accommodate book fields
   },
@@ -26,12 +26,6 @@ const upload = multer({
       mimetype: file.mimetype,
       size: file.size || 'unknown'
     });
-    
-    // Check file size early
-    if (file.size && file.size > 2 * 1024 * 1024) {
-      console.log('❌ File too large:', file.size);
-      return cb(new Error('File too large. Maximum size is 2MB.'), false);
-    }
     
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
@@ -697,65 +691,32 @@ router.put('/:id', authenticateToken, upload.single('photo'), async (req, res) =
           }
         }
         
-        // Manual upload to Cloudinary with Railway optimizations
+        // Manual upload to Cloudinary - simplified working version
         const uploadResult = await new Promise((resolve, reject) => {
           const timestamp = Math.floor(Date.now() / 1000);
           const random = Math.round(Math.random() * 1E9);
           const publicId = `item-${timestamp}-${random}`;
           
-          console.log('☁️ Starting Cloudinary upload with config check...');
-          console.log('🔑 Cloudinary config status:', {
-            hasCloudName: !!cloudinary.config().cloud_name,
-            hasApiKey: !!cloudinary.config().api_key,
-            hasApiSecret: !!cloudinary.config().api_secret,
-            cloudName: cloudinary.config().cloud_name
-          });
-          
-          // Add timeout for Railway
-          const timeout = setTimeout(() => {
-            reject(new Error('Cloudinary upload timeout (30s) - Railway memory limit may be exceeded'));
-          }, 30000);
+          console.log('☁️ Cloudinary upload starting...');
           
           const uploadStream = cloudinary.uploader.upload_stream(
             {
               folder: 'inventory-items',
               public_id: publicId,
-              resource_type: 'auto',
-              quality: 'auto:low', // Reduce quality for Railway memory constraints
-              fetch_format: 'auto', // Let Cloudinary optimize format
-              flags: 'progressive' // Progressive loading
+              resource_type: 'auto'
             },
             (error, result) => {
-              clearTimeout(timeout);
-              
               if (error) {
-                console.error('❌ Cloudinary upload error details:', {
-                  message: error.message,
-                  name: error.name,
-                  http_code: error.http_code,
-                  error: error
-                });
+                console.error('❌ Cloudinary upload error:', error);
                 reject(error);
               } else {
-                console.log('✅ Cloudinary upload successful:', {
-                  public_id: result.public_id,
-                  secure_url: result.secure_url,
-                  bytes: result.bytes,
-                  format: result.format
-                });
+                console.log('✅ Cloudinary upload successful:', result.public_id);
                 resolve(result);
               }
             }
           );
           
-          try {
-            console.log('📤 Uploading buffer of size:', req.file.buffer.length);
-            uploadStream.end(req.file.buffer);
-          } catch (bufferError) {
-            clearTimeout(timeout);
-            console.error('❌ Buffer upload error:', bufferError);
-            reject(bufferError);
-          }
+          uploadStream.end(req.file.buffer);
         });
         
         // Set new image data
@@ -798,13 +759,7 @@ router.put('/:id', authenticateToken, upload.single('photo'), async (req, res) =
 
     res.json(item);
   } catch (error) {
-    console.error('❌ Error updating item - Full details:', {
-      message: error.message,
-      name: error.name,
-      stack: error.stack,
-      code: error.code,
-      status: error.status
-    });
+    console.error('Error updating item:', error);
     
     // Clean up uploaded image if update failed
     if (req.file && req.file.filename) {
@@ -815,25 +770,7 @@ router.put('/:id', authenticateToken, upload.single('photo'), async (req, res) =
       }
     }
     
-    // Provide more specific error messages
-    let errorMessage = 'Failed to update item';
-    let statusCode = 500;
-    
-    if (error.message.includes('timeout')) {
-      errorMessage = 'Upload timeout - file may be too large for Railway limits';
-      statusCode = 413;
-    } else if (error.message.includes('Cloudinary')) {
-      errorMessage = 'Image upload service error';
-      statusCode = 502;
-    } else if (error.name === 'ValidationError') {
-      errorMessage = 'Invalid data provided';
-      statusCode = 400;
-    }
-    
-    res.status(statusCode).json({ 
-      error: errorMessage,
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    res.status(500).json({ error: 'Failed to update item' });
   }
 });
 
