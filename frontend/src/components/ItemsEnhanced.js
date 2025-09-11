@@ -250,7 +250,12 @@ function ItemsEnhanced() {
       setImagePreview(null);
       setEditingId(null);
       setOpenDialog(false);
-      fetchItems();
+      
+      // Refresh both items and categories to reflect changes
+      await Promise.all([
+        fetchItems(),
+        fetchCategories()
+      ]);
     } catch (err) {
       console.error('❌ Save item error:', err);
       setSnackbar({ 
@@ -603,7 +608,17 @@ function ItemsEnhanced() {
                     </Typography>
                     {item.isbn13 && (
                       <Typography variant="body2" color="text.secondary">
-                        <strong>ISBN:</strong> {item.isbn13}
+                        <strong>ISBN-13:</strong> {item.isbn13}
+                      </Typography>
+                    )}
+                    {item.isbn10 && (
+                      <Typography variant="body2" color="text.secondary">
+                        <strong>ISBN-10:</strong> {item.isbn10}
+                      </Typography>
+                    )}
+                    {item.publisher && (
+                      <Typography variant="body2" color="text.secondary">
+                        <strong>Publisher:</strong> {item.publisher}
                       </Typography>
                     )}
                     {item.category && (

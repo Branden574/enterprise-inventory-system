@@ -25,6 +25,13 @@ import SystemUpdateAltIcon from '@mui/icons-material/SystemUpdateAlt';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import CategoryIcon from '@mui/icons-material/Category';
 import BookIcon from '@mui/icons-material/Book';
+import ListAltIcon from '@mui/icons-material/ListAlt';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import ImportExportIcon from '@mui/icons-material/ImportExport';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
+import PeopleIcon from '@mui/icons-material/People';
+import SecurityIcon from '@mui/icons-material/Security';
 import axios from '../utils/axios';
 
 function Navbar({ token, setToken }) {
@@ -351,28 +358,48 @@ function Navbar({ token, setToken }) {
                   sx: { py: 0.5 }
                 }}
                 sx={{ mt: 1 }}
+                TransitionComponent={Fade}
+                transitionDuration={200}
               >
                 <MenuItem onClick={() => { navigate('/purchase-orders'); handleClose('purchase'); }}>
-                  View Orders
+                  <ListItemIcon>
+                    <ListAltIcon fontSize="small" color="primary" />
+                  </ListItemIcon>
+                  <ListItemText primary="View Orders" />
                 </MenuItem>
                 <MenuItem onClick={() => { navigate('/purchase-orders/new'); handleClose('purchase'); }}>
-                  Create Order
+                  <ListItemIcon>
+                    <ShoppingCartIcon fontSize="small" color="success" />
+                  </ListItemIcon>
+                  <ListItemText primary="Create Order" />
                 </MenuItem>
                 <Divider />
                 <MenuItem onClick={() => { navigate('/completed-pos'); handleClose('purchase'); }}>
-                  Completed POs
+                  <ListItemIcon>
+                    <AssignmentIcon fontSize="small" color="warning" />
+                  </ListItemIcon>
+                  <ListItemText primary="Completed POs" />
                 </MenuItem>
                 <MenuItem onClick={() => { navigate('/completed-pos/new'); handleClose('purchase'); }}>
-                  Upload Completed PO
+                  <ListItemIcon>
+                    <CloudUploadIcon fontSize="small" color="info" />
+                  </ListItemIcon>
+                  <ListItemText primary="Upload Completed PO" />
                 </MenuItem>
                 {isAdmin && (
                   <>
                     <Divider />
                     <MenuItem onClick={() => { navigate('/purchase-orders/requests'); handleClose('purchase'); }}>
-                      PO Requests
+                      <ListItemIcon>
+                        <NotificationsIcon fontSize="small" color="error" />
+                      </ListItemIcon>
+                      <ListItemText primary="PO Requests" />
                     </MenuItem>
                     <MenuItem onClick={() => { navigate('/order-requests'); handleClose('purchase'); }}>
-                      Order Requests
+                      <ListItemIcon>
+                        <AssignmentIcon fontSize="small" color="secondary" />
+                      </ListItemIcon>
+                      <ListItemText primary="Order Requests" />
                     </MenuItem>
                   </>
                 )}
@@ -388,21 +415,35 @@ function Navbar({ token, setToken }) {
                   sx: { py: 0.5 }
                 }}
                 sx={{ mt: 1 }}
+                TransitionComponent={Fade}
+                transitionDuration={200}
               >
                 <MenuItem onClick={() => { navigate('/internal-orders'); handleClose('internal'); }}>
-                  My Orders
+                  <ListItemIcon>
+                    <ListAltIcon fontSize="small" color="primary" />
+                  </ListItemIcon>
+                  <ListItemText primary="My Orders" />
                 </MenuItem>
                 <MenuItem onClick={() => { navigate('/internal-orders/new'); handleClose('internal'); }}>
-                  New Order Request
+                  <ListItemIcon>
+                    <ShoppingCartIcon fontSize="small" color="success" />
+                  </ListItemIcon>
+                  <ListItemText primary="New Order Request" />
                 </MenuItem>
                 {isAdmin && (
                   <>
                     <Divider />
                     <MenuItem onClick={() => { navigate('/internal-orders/pending'); handleClose('internal'); }}>
-                      Pending Requests
+                      <ListItemIcon>
+                        <NotificationsIcon fontSize="small" color="warning" />
+                      </ListItemIcon>
+                      <ListItemText primary="Pending Requests" />
                     </MenuItem>
                     <MenuItem onClick={() => { navigate('/internal-orders/all'); handleClose('internal'); }}>
-                      All Internal Orders
+                      <ListItemIcon>
+                        <ListAltIcon fontSize="small" color="info" />
+                      </ListItemIcon>
+                      <ListItemText primary="All Internal Orders" />
                     </MenuItem>
                   </>
                 )}
@@ -418,9 +459,14 @@ function Navbar({ token, setToken }) {
                   sx: { py: 0.5 }
                 }}
                 sx={{ mt: 1 }}
+                TransitionComponent={Fade}
+                transitionDuration={200}
               >
                 <MenuItem onClick={() => { navigate('/import-export'); handleClose('importExport'); }}>
-                  Import/Export Data
+                  <ListItemIcon>
+                    <ImportExportIcon fontSize="small" color="primary" />
+                  </ListItemIcon>
+                  <ListItemText primary="Import/Export Data" />
                 </MenuItem>
               </Menu>
 
@@ -434,16 +480,27 @@ function Navbar({ token, setToken }) {
                   sx: { py: 0.5 }
                 }}
                 sx={{ mt: 1 }}
+                TransitionComponent={Fade}
+                transitionDuration={200}
               >
                 <MenuItem onClick={() => { navigate('/custom-fields'); handleClose('admin'); }}>
-                  Custom Fields
+                  <ListItemIcon>
+                    <SettingsIcon fontSize="small" color="primary" />
+                  </ListItemIcon>
+                  <ListItemText primary="Custom Fields" />
                 </MenuItem>
                 <MenuItem onClick={() => { navigate('/users'); handleClose('admin'); }}>
-                  User Management
+                  <ListItemIcon>
+                    <PeopleIcon fontSize="small" color="info" />
+                  </ListItemIcon>
+                  <ListItemText primary="User Management" />
                 </MenuItem>
                 <Divider />
                 <MenuItem onClick={() => { navigate('/settings'); handleClose('admin'); }}>
-                  System Settings
+                  <ListItemIcon>
+                    <SecurityIcon fontSize="small" color="warning" />
+                  </ListItemIcon>
+                  <ListItemText primary="System Settings" />
                 </MenuItem>
               </Menu>
             </>
