@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   AppBar, 
   Toolbar, 
@@ -9,15 +9,23 @@ import {
   Menu, 
   MenuItem, 
   IconButton,
-  Divider
+  Divider,
+  ListItemIcon,
+  ListItemText,
+  Fade,
+  Zoom
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import SettingsIcon from '@mui/icons-material/Settings';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import SystemUpdateAltIcon from '@mui/icons-material/SystemUpdateAlt';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import CategoryIcon from '@mui/icons-material/Category';
+import BookIcon from '@mui/icons-material/Book';
+import axios from '../utils/axios';
 
 function Navbar({ token, setToken }) {
   const navigate = useNavigate();
@@ -26,8 +34,13 @@ function Navbar({ token, setToken }) {
     purchase: null,
     internal: null,
     importExport: null,
-    admin: null
+    admin: null,
+    itemsSubmenu: null
   });
+  
+  // Categories state for submenu
+  const [categories, setCategories] = useState([]);
+  const [submenuOpen, setSubmenuOpen] = useState(false);
 
   // Get user role from localStorage or sessionStorage
   const remembered = localStorage.getItem('rememberMe') === 'true';
@@ -38,6 +51,24 @@ function Navbar({ token, setToken }) {
   console.log('Remembered?', remembered);
   console.log('Current user role:', userRole);
   console.log('Is admin?', isAdmin);
+
+  // Fetch categories for submenu
+  useEffect(() => {
+    if (token) {
+      fetchCategories();
+    }
+  }, [token]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get('/api/categories', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setCategories(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
 
   const handleClick = (event, menu) => {
     setMenuAnchor(prev => ({
@@ -51,6 +82,33 @@ function Navbar({ token, setToken }) {
       ...prev,
       [menu]: null
     }));
+    if (menu === 'inventory') {
+      setSubmenuOpen(false);
+      setMenuAnchor(prev => ({ ...prev, itemsSubmenu: null }));
+    }
+  };
+
+  const handleSubmenuOpen = (event) => {
+    setMenuAnchor(prev => ({
+      ...prev,
+      itemsSubmenu: event.currentTarget
+    }));
+    setSubmenuOpen(true);
+  };
+
+  const handleSubmenuClose = () => {
+    setMenuAnchor(prev => ({ ...prev, itemsSubmenu: null }));
+    setSubmenuOpen(false);
+  };
+
+  const navigateToItemsByCategory = (categoryId, categoryName) => {
+    if (categoryId) {
+      navigate(`/items?category=${categoryId}&categoryName=${encodeURIComponent(categoryName)}`);
+    } else {
+      navigate('/items');
+    }
+    handleClose('inventory');
+    handleSubmenuClose();
   };
 
   const handleLogout = () => {
@@ -163,13 +221,124 @@ function Navbar({ token, setToken }) {
                   sx: { py: 0.5 }
                 }}
                 sx={{ mt: 1 }}
+                TransitionComponent={Fade}
+                transitionDuration={200}
               >
-                <MenuItem onClick={() => { navigate('/items'); handleClose('inventory'); }}>
-                  Items List
+                {/* Items List with Submenu */}
+                <MenuItem 
+                  onClick={handleSubmenuOpen}
+                  onMouseEnter={handleSubmenuOpen}
+                  sx={{ 
+                    pr: 4, 
+                    position: 'relative',
+                    '&:hover': {
+                      backgroundColor: 'primary.light',
+                      color: 'primary.contrastText'
+                    }
+                  }}
+                >
+                  <ListItemIcon>
+                    <InventoryIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText primary="Items List" />
+                  <KeyboardArrowRightIcon 
+                    sx={{ 
+                      position: 'absolute', 
+                      right: 8,
+                      transition: 'transform 0.2s ease',
+                      transform: submenuOpen ? 'rotate(90deg)' : 'rotate(0deg)'
+                    }} 
+                  />
                 </MenuItem>
+                
+                <Divider sx={{ my: 0.5 }} />
+                
                 <MenuItem onClick={() => { navigate('/categories'); handleClose('inventory'); }}>
-                  Categories
+                  <ListItemIcon>
+                    <CategoryIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText primary="Categories" />
                 </MenuItem>
+              </Menu>
+
+              {/* Items Submenu */}
+              <Menu
+                anchorEl={menuAnchor.itemsSubmenu}
+                open={submenuOpen && Boolean(menuAnchor.itemsSubmenu)}
+                onClose={handleSubmenuClose}
+                elevation={3}
+                MenuListProps={{
+                  sx: { py: 0.5, minWidth: 200 }
+                }}
+                sx={{ 
+                  mt: -1,
+                  ml: 1,
+                  '& .MuiMenu-paper': {
+                    borderRadius: 2,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                  }
+                }}
+                TransitionComponent={Zoom}
+                transitionDuration={150}
+                anchorOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right'
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'left'
+                }}
+              >
+                {/* All Items Option */}
+                <MenuItem 
+                  onClick={() => navigateToItemsByCategory(null, 'All Items')}
+                  sx={{ 
+                    fontWeight: 600,
+                    color: 'primary.main',
+                    '&:hover': {
+                      backgroundColor: 'primary.light',
+                      color: 'primary.contrastText'
+                    }
+                  }}
+                >
+                  <ListItemIcon>
+                    <InventoryIcon fontSize="small" color="primary" />
+                  </ListItemIcon>
+                  <ListItemText primary="All Items" />
+                </MenuItem>
+                
+                <Divider sx={{ my: 0.5 }} />
+                
+                {/* Category Options */}
+                {categories.map((category) => (
+                  <MenuItem 
+                    key={category._id}
+                    onClick={() => navigateToItemsByCategory(category._id, category.name)}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'secondary.light',
+                        color: 'secondary.contrastText'
+                      }
+                    }}
+                  >
+                    <ListItemIcon>
+                      <BookIcon fontSize="small" color="secondary" />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={category.name} 
+                      secondary={`${category.itemCount || 0} items`}
+                    />
+                  </MenuItem>
+                ))}
+                
+                {categories.length === 0 && (
+                  <MenuItem disabled>
+                    <ListItemText 
+                      primary="No categories found" 
+                      sx={{ fontStyle: 'italic' }}
+                    />
+                  </MenuItem>
+                )}
               </Menu>
 
               {/* Purchase Orders Menu */}

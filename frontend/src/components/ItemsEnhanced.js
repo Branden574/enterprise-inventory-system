@@ -1,5 +1,6 @@
 // Enhanced Items component with core features but safer MUI implementation
 import React, { useState, useEffect } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import axios from '../utils/axios';
 import {
   Button, TextField, Select, MenuItem, InputLabel, FormControl, 
@@ -12,6 +13,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 
 function ItemsEnhanced() {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState({ 
@@ -71,6 +75,17 @@ function ItemsEnhanced() {
       fetchCategories()
     ]).finally(() => setLoading(false));
   }, []);
+
+  // Handle URL parameters for category filtering
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    const categoryNameParam = searchParams.get('categoryName');
+    
+    if (categoryParam) {
+      setCategoryFilter(categoryParam);
+      console.log(`🏷️ Filtering by category: ${categoryNameParam || categoryParam}`);
+    }
+  }, [searchParams, location]);
 
   const fetchItems = async () => {
     try {
@@ -429,7 +444,16 @@ function ItemsEnhanced() {
       px: { xs: 1, sm: 2 }
     }}>
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, textAlign: 'center', mt: 2, mb: 2 }}>
-        Items ({items.length} total)
+        {searchParams.get('categoryName') ? (
+          <>
+            {searchParams.get('categoryName')} Items ({items.length} total)
+            <Typography variant="subtitle1" color="text.secondary" sx={{ mt: 1 }}>
+              Showing items in "{searchParams.get('categoryName')}" category
+            </Typography>
+          </>
+        ) : (
+          `Items (${items.length} total)`
+        )}
       </Typography>
       
       {/* Search and Filter Section */}
