@@ -159,6 +159,7 @@ function Items({ token }) {
     
     if (selectedItemType === 'book') {
       if (!form.title?.trim()) errors.title = 'Book title is required';
+      if (!form.isbn13?.trim()) errors.isbn13 = 'ISBN-13 is required for books';
     } else {
       if (!form.name?.trim()) errors.name = 'Item name is required';
     }
@@ -705,12 +706,15 @@ function Items({ token }) {
                 <Grid item xs={12}>
                   <TextField 
                     name="isbn13" 
-                    label="ISBN-13" 
+                    label="ISBN-13 *" 
                     value={form.isbn13 || ''} 
                     onChange={handleChange} 
+                    required
                     fullWidth 
                     margin="normal"
                     placeholder="978-1-234-56789-0"
+                    error={!!formErrors.isbn13}
+                    helperText={formErrors.isbn13}
                   />
                 </Grid>
               )}
