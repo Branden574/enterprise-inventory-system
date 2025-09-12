@@ -12,6 +12,8 @@ import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import BarcodeScanner from './BarcodeScanner';
 
 function Items() {
+  // EMERGENCY FIX
+  alert("VERSION 3.0.0 - FINAL ATTEMPT");
   // FORCE CODE CHANGES TO BE OBVIOUS - VERSION 2.0.0
   console.log('� Items component loaded - VERSION 2.0.0 - DIRECT SOURCE CODE EDIT');
   const [items, setItems] = useState([]);
@@ -769,21 +771,22 @@ function Items() {
           alignItems: { xs: 'stretch', sm: 'center' },
           mb: 1
         }}>
-          {/* URGENT ADD ITEM BUTTON - NATIVE JAVASCRIPT VERSION */}
+          {/* EMERGENCY FINAL FIX V3 BUTTON */}
           <Button
             variant="contained"
-            color="primary"
+            color="error"  
             onClick={() => {
-              const choice = window.confirm("SELECT ITEM TYPE:\n\nClick 'OK' for Book\nClick 'Cancel' for General Item");
-          
-              if (choice) {
+              // EMERGENCY FINAL FIX - V3
+              const isBook = window.confirm("VERSION 3.0 CHOOSER\n\nChoose item type:\nPress OK for BOOK\nPress Cancel for GENERAL ITEM");
+              if (isBook) {
+                // For books
+                document.title = "Adding Book";
                 setSelectedItemType('book');
-                window.alert("You selected BOOK");
               } else {
+                // For general items  
+                document.title = "Adding General Item";
                 setSelectedItemType('item');
-                window.alert("You selected GENERAL ITEM");
               }
-              
               setOpenDialog(true);
             }}
             size="medium"
@@ -1129,16 +1132,17 @@ function Items() {
         color="primary" 
         aria-label="add" 
         onClick={() => {
-          const choice = window.confirm("SELECT ITEM TYPE:\n\nClick 'OK' for Book\nClick 'Cancel' for General Item");
-          
-          if (choice) {
+          // EMERGENCY FIX V3 - DIRECT FORM MANIPULATION
+          const isBook = window.confirm("Version 3.0 - EMERGENCY FIX\n\nChoose item type:\nPress OK for BOOK\nPress Cancel for GENERAL ITEM");
+          if (isBook) {
+            // For books
+            document.title = "Adding Book";
             setSelectedItemType('book');
-            window.alert("You selected BOOK");
           } else {
+            // For general items
+            document.title = "Adding General Item";
             setSelectedItemType('item');
-            window.alert("You selected GENERAL ITEM");
           }
-          
           setOpenDialog(true);
         }} 
         sx={{ 
