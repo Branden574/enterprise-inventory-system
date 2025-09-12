@@ -1,0 +1,33 @@
+Subject: 🎉 DC4 Inventory System - Major Updates Live Now!
+
+Dear Team,
+
+Great news! Major improvements to our DC4 Inventory Management System are now live:
+
+🚀 NEW FEATURES:
+• Smart item type selection with animated interface
+• Professional book management with required ISBN-13
+• Faster performance and smoother user experience
+• Updated welcome page with feature overview
+
+🎯 HOW TO USE:
+1. Visit: https://enterprise-inventory-system-production.up.railway.app
+2. Click the blue + button to add items
+3. Choose "📦 General Item" or "📚 Book" 
+4. Books now require ISBN-13 for professional cataloging
+
+✨ IMPROVEMENTS:
+• Faster loading times
+• Bug fixes and stability improvements
+• Enhanced search functionality
+• Better user interface
+
+The system is ready to use immediately. Check out the new welcome page for a complete feature overview and quick start guide.
+
+Questions? Contact your system administrator.
+
+Best regards,
+DC4 System Administration Team
+
+---
+Access: https://enterprise-inventory-system-production.up.railway.app
