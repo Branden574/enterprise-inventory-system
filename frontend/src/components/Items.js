@@ -1,5 +1,6 @@
 // Fresh Items component - completely rewritten to fix the button issue
 import React, { useState, useEffect } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import axios from '../utils/axios';
 import {
   Button, TextField, Select, MenuItem, InputLabel, FormControl, Card, CardContent, CardActions, Typography, Grid, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, Box, Pagination, Checkbox, FormControlLabel, Fab
@@ -11,6 +12,9 @@ import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import BarcodeScanner from './BarcodeScanner';
 
 function Items({ token }) {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  
   // State declarations
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -67,6 +71,20 @@ function Items({ token }) {
       fetchCustomFields()
     ]).finally(() => setLoading(false));
   }, []);
+
+  // Handle URL parameters for category filtering
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    const categoryNameParam = searchParams.get('categoryName');
+    
+    if (categoryParam && categoryParam !== 'null') {
+      setCategoryFilter(categoryParam);
+      console.log(`🏷️ Filtering by category: ${categoryNameParam || categoryParam}`);
+    } else if (categoryParam === 'null' || categoryNameParam === 'All Items') {
+      setCategoryFilter('');
+      console.log('🏷️ Showing all items');
+    }
+  }, [searchParams, location]);
 
   const fetchItems = async () => {
     try {
