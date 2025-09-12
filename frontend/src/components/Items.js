@@ -1633,9 +1633,6 @@ function Items() {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions sx={{ justifyContent: 'center', pt: 0, pb: 2 }}>
-          <Button onClick={() => setShowTypeSelector(false)}>Cancel</Button>
-        </DialogActions>
       </Dialog>
     </Box>
   );
