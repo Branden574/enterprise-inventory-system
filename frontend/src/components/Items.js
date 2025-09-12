@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../utils/axios';
 import {
-  Button, TextField, Select, MenuItem, InputLabel, FormControl, Card, CardContent, CardActions, Typography, Grid, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, Box, Pagination, Checkbox, FormControlLabel, SpeedDial, SpeedDialAction
+  Button, TextField, Select, MenuItem, InputLabel, FormControl, Card, CardContent, CardActions, Typography, Grid, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, Box, Pagination, Checkbox, FormControlLabel, Fab
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -50,7 +50,7 @@ function Items() {
   const [editingId, setEditingId] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   // Simple and clean type selector implementation
-  // (Deprecated modal type selector removed in favor of animated SpeedDial)
+  const [showTypeSelector, setShowTypeSelector] = useState(false);
   const [selectedItemType, setSelectedItemType] = useState('item'); // 'item' or 'book'
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [customFieldsConfig, setCustomFieldsConfig] = useState([]);
@@ -542,7 +542,7 @@ function Items() {
     }
   };
 
-  // Open dialog directly for a given type (used by SpeedDial actions)
+  // Open dialog directly for a given type
   const openAddDialog = (type) => {
     setSelectedItemType(type);
     setEditingId(null);
@@ -795,11 +795,11 @@ function Items() {
           alignItems: { xs: 'stretch', sm: 'center' },
           mb: 1
         }}>
-          {/* Quick add general item button (opens item form directly). Optional. */}
+          {/* Open type selector dialog */}
           <Button
             variant="contained"
             color="primary"
-            onClick={() => openAddDialog('item')}
+            onClick={() => setShowTypeSelector(true)}
             size="medium"
             sx={{ 
               order: { xs: 1, sm: 1 },
@@ -807,7 +807,7 @@ function Items() {
               fontWeight: 'bold'
             }}
           >
-            Add Item
+            Add New
           </Button>
           
           {/* Barcode Search Button */}
@@ -1134,36 +1134,26 @@ function Items() {
         </>
       )}
       
-      {/* Animated SpeedDial for choosing item type */}
-      <SpeedDial
-        ariaLabel="add-item-speed-dial"
-        icon={<AddIcon />}
+      {/* Floating Action Button -> opens type selector dialog */}
+      <Fab
+        color="primary"
+        aria-label="add"
+        onClick={() => setShowTypeSelector(true)}
         sx={{
           position: 'fixed',
           bottom: { xs: 20, sm: 32 },
           right: { xs: 20, sm: 32 },
           zIndex: 1300,
-          '& .MuiFab-primary': {
-            animation: 'pulse 1.8s infinite',
-            '@keyframes pulse': {
-              '0%': { boxShadow: '0 0 0 0 rgba(33,150,243,0.6)' },
-              '70%': { boxShadow: '0 0 0 12px rgba(33,150,243,0)' },
-              '100%': { boxShadow: '0 0 0 0 rgba(33,150,243,0)' }
-            }
+          animation: 'pulse 1.8s infinite',
+          '@keyframes pulse': {
+            '0%': { boxShadow: '0 0 0 0 rgba(33,150,243,0.6)' },
+            '70%': { boxShadow: '0 0 0 12px rgba(33,150,243,0)' },
+            '100%': { boxShadow: '0 0 0 0 rgba(33,150,243,0)' }
           }
         }}
       >
-        <SpeedDialAction
-          icon={<Box component="span" sx={{ fontSize: 22, lineHeight: 1 }}>📦</Box>}
-          tooltipTitle="Add General Item"
-          onClick={() => openAddDialog('item')}
-        />
-        <SpeedDialAction
-          icon={<Box component="span" sx={{ fontSize: 22, lineHeight: 1 }}>📚</Box>}
-          tooltipTitle="Add Book"
-          onClick={() => openAddDialog('book')}
-        />
-      </SpeedDial>
+        <AddIcon />
+      </Fab>
       
       {/* Mobile-responsive Dialog */}
       <Dialog 
@@ -1567,7 +1557,73 @@ function Items() {
         title={scanMode === 'search' ? 'Scan to Search Item' : 'Scan to Add Barcode'}
       />
 
-  {/* (Removed legacy type selector dialog now replaced by SpeedDial) */}
+      {/* Type Selector Dialog */}
+      <Dialog 
+        open={showTypeSelector} 
+        onClose={() => setShowTypeSelector(false)}
+        maxWidth="xs" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+            animation: 'fadeInUp 0.25s ease-out',
+            '@keyframes fadeInUp': {
+              '0%': { opacity: 0, transform: 'translateY(15px) scale(.95)' },
+              '100%': { opacity: 1, transform: 'translateY(0) scale(1)' }
+            }
+          }
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600, pb: 1 }}>Add New</DialogTitle>
+        <DialogContent sx={{ pb: 1 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={() => { setShowTypeSelector(false); openAddDialog('item'); }}
+                sx={{
+                  py: 2,
+                  fontWeight: 600,
+                  background: 'linear-gradient(45deg, #2196F3 10%, #21CBF3 90%)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 0.5,
+                  '&:hover': { boxShadow: '0 6px 18px rgba(33,150,243,.35)', transform: 'translateY(-2px)' },
+                  transition: 'all .2s'
+                }}
+              >
+                <Box sx={{ fontSize: 32 }}>📦</Box>
+                General Item
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={() => { setShowTypeSelector(false); openAddDialog('book'); }}
+                sx={{
+                  py: 2,
+                  fontWeight: 600,
+                  background: 'linear-gradient(45deg, #FF6B6B 10%, #FF8E8E 90%)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 0.5,
+                  '&:hover': { boxShadow: '0 6px 18px rgba(255,107,107,.35)', transform: 'translateY(-2px)' },
+                  transition: 'all .2s'
+                }}
+              >
+                <Box sx={{ fontSize: 32 }}>📚</Box>
+                Book
+              </Button>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', pt: 0, pb: 2 }}>
+          <Button onClick={() => setShowTypeSelector(false)}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
