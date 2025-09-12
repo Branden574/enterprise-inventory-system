@@ -10,9 +10,7 @@ import AddIcon from '@mui/icons-material/Add';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import BarcodeScanner from './BarcodeScanner';
 
-function Items() {
-  console.log('🔥 FRESH Items component loaded - NO LEGACY CODE');
-  
+function Items({ token }) {
   // State declarations
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -561,14 +559,14 @@ function Items() {
                     <IconButton 
                       color="primary" 
                       onClick={() => handleEdit(item)}
-                      size={{ xs: 'small', sm: 'medium' }}
+                      size="small"
                     >
                       <EditIcon />
                     </IconButton>
                     <IconButton 
                       color="error" 
                       onClick={() => handleDelete(item._id)}
-                      size={{ xs: 'small', sm: 'medium' }}
+                      size="small"
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -591,7 +589,7 @@ function Items() {
                 page={currentPage} 
                 onChange={handlePageChange}
                 color="primary"
-                size={{ xs: 'small', sm: 'large' }}
+                size="medium"
                 showFirstButton
                 showLastButton
               />
