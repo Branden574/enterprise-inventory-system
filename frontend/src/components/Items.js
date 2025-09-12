@@ -90,6 +90,10 @@ function Items() {
   }, []);
 
   useEffect(() => {
+    // Clear any old localStorage flags on component mount
+    localStorage.removeItem('showAddItemForm');
+    localStorage.removeItem('selectedItemType');
+    
     Promise.all([
       fetchItems(),
       fetchCategories(),
