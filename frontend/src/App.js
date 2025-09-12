@@ -39,49 +39,163 @@ import ImportExport from './components/ImportExport.js';
 import Notifications from './components/Notifications.js';
 
 
-import { Box, Paper, List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
+import { Box, Paper, List, ListItem, ListItemIcon, ListItemText, Chip, Grid } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import NewReleasesIcon from '@mui/icons-material/NewReleases';
+import BookIcon from '@mui/icons-material/Book';
+import InventoryIcon from '@mui/icons-material/Inventory';
 
 function Home() {
   return (
-    <Box mt={6}>
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 4, maxWidth: 700, mx: 'auto' }}>
+    <Box mt={4}>
+      <Paper elevation={3} sx={{ p: 4, borderRadius: 4, maxWidth: 900, mx: 'auto', mb: 4 }}>
         <Typography variant="h3" align="center" fontWeight={700} gutterBottom color="primary">
           Welcome to DC4 Inventory Management
         </Typography>
-        <Typography align="center" color="text.secondary" mb={3}>
-          Your all-in-one solution for tracking, organizing, and managing your organization's inventory with ease.
+        <Typography align="center" color="text.secondary" mb={3} fontSize="1.1rem">
+          Your comprehensive solution for tracking, organizing, and managing inventory with professional-grade features.
         </Typography>
-        <Typography variant="h5" align="center" fontWeight={600} gutterBottom mt={4}>
-          Our Story
+        
+        {/* New Features Banner */}
+        <Box sx={{ 
+          bgcolor: 'primary.main', 
+          color: 'white', 
+          p: 2, 
+          borderRadius: 2, 
+          mb: 4, 
+          textAlign: 'center',
+          background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)'
+        }}>
+          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+            <NewReleasesIcon /> 🎉 Latest Updates - September 2025 🎉
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1, opacity: 0.9 }}>
+            Enhanced item management with intelligent type selection and improved user experience!
+          </Typography>
+        </Box>
+
+        <Grid container spacing={4}>
+          {/* Key Features */}
+          <Grid item xs={12} md={6}>
+            <Typography variant="h5" fontWeight={600} gutterBottom color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <InventoryIcon /> Core Features
+            </Typography>
+            <List dense>
+              <ListItem sx={{ py: 0.5 }}>
+                <ListItemIcon><CheckCircleIcon color="primary" fontSize="small" /></ListItemIcon>
+                <ListItemText 
+                  primary="Smart Item Addition" 
+                  secondary="Choose between General Items and Books with animated type selector"
+                />
+              </ListItem>
+              <ListItem sx={{ py: 0.5 }}>
+                <ListItemIcon><CheckCircleIcon color="primary" fontSize="small" /></ListItemIcon>
+                <ListItemText 
+                  primary="Professional Book Management" 
+                  secondary="Required ISBN-13 validation for accurate book cataloging"
+                />
+              </ListItem>
+              <ListItem sx={{ py: 0.5 }}>
+                <ListItemIcon><CheckCircleIcon color="primary" fontSize="small" /></ListItemIcon>
+                <ListItemText 
+                  primary="Photo Upload & Management" 
+                  secondary="Add images to items for easy visual identification"
+                />
+              </ListItem>
+              <ListItem sx={{ py: 0.5 }}>
+                <ListItemIcon><CheckCircleIcon color="primary" fontSize="small" /></ListItemIcon>
+                <ListItemText 
+                  primary="Advanced Search & Filtering" 
+                  secondary="Find items by name, ISBN, category, location, or custom fields"
+                />
+              </ListItem>
+            </List>
+          </Grid>
+
+          {/* Recent Improvements */}
+          <Grid item xs={12} md={6}>
+            <Typography variant="h5" fontWeight={600} gutterBottom color="success.main" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <BookIcon /> What's New
+            </Typography>
+            <List dense>
+              <ListItem sx={{ py: 0.5 }}>
+                <ListItemIcon><NewReleasesIcon color="success" fontSize="small" /></ListItemIcon>
+                <ListItemText 
+                  primary={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    Redesigned Add Button <Chip label="NEW" size="small" color="success" variant="outlined" />
+                  </Box>}
+                  secondary="Beautiful animated type selector for choosing item types"
+                />
+              </ListItem>
+              <ListItem sx={{ py: 0.5 }}>
+                <ListItemIcon><NewReleasesIcon color="success" fontSize="small" /></ListItemIcon>
+                <ListItemText 
+                  primary={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    Enhanced Book Validation <Chip label="IMPROVED" size="small" color="primary" variant="outlined" />
+                  </Box>}
+                  secondary="ISBN-13 now required for all book entries ensuring data accuracy"
+                />
+              </ListItem>
+              <ListItem sx={{ py: 0.5 }}>
+                <ListItemIcon><NewReleasesIcon color="success" fontSize="small" /></ListItemIcon>
+                <ListItemText 
+                  primary={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    Improved Performance <Chip label="FIXED" size="small" color="warning" variant="outlined" />
+                  </Box>}
+                  secondary="Faster loading times and smoother user interactions"
+                />
+              </ListItem>
+              <ListItem sx={{ py: 0.5 }}>
+                <ListItemIcon><NewReleasesIcon color="success" fontSize="small" /></ListItemIcon>
+                <ListItemText 
+                  primary={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    Bug Fixes <Chip label="STABLE" size="small" color="info" variant="outlined" />
+                  </Box>}
+                  secondary="Resolved component crashes and infinite loading issues"
+                />
+              </ListItem>
+            </List>
+          </Grid>
+        </Grid>
+
+        {/* Quick Start Guide */}
+        <Typography variant="h5" fontWeight={600} gutterBottom mt={4} color="primary">
+          Quick Start Guide
         </Typography>
-        <Typography align="center" color="text.secondary" mb={3}>
-          DC4 Inventory Management was created to help teams like yours stay organized, reduce loss, and make inventory simple. Whether you're tracking supplies, equipment, or assets, our platform is designed to be intuitive, flexible, and powerful for organizations of any size.
-        </Typography>
-        <List>
-          <ListItem>
-            <ListItemIcon><CheckCircleIcon color="primary" /></ListItemIcon>
-            <ListItemText primary="Login or create an account. Admins can manage users and permissions." />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><CheckCircleIcon color="primary" /></ListItemIcon>
-            <ListItemText primary="Add items to your inventory, including photos and custom details." />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><CheckCircleIcon color="primary" /></ListItemIcon>
-            <ListItemText primary="Organize items with categories, folders, and tags." />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><CheckCircleIcon color="primary" /></ListItemIcon>
-            <ListItemText primary="Use the navigation bar to view, edit, or delete items and manage custom fields." />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon><CheckCircleIcon color="primary" /></ListItemIcon>
-            <ListItemText primary="Admins can access the Roadmap to see upcoming features and manage custom fields." />
-          </ListItem>
-        </List>
-        <Typography align="center" color="text.secondary" mt={2}>
-          For help or more information, contact your system administrator.
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.50' }}>
+              <Typography variant="h6" color="primary">1. Login</Typography>
+              <Typography variant="body2">Access your account or contact admin for setup</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.50' }}>
+              <Typography variant="h6" color="primary">2. Add Items</Typography>
+              <Typography variant="body2">Click the blue + button and choose item type</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.50' }}>
+              <Typography variant="h6" color="primary">3. Organize</Typography>
+              <Typography variant="body2">Use categories and locations to stay organized</Typography>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.50' }}>
+              <Typography variant="h6" color="primary">4. Manage</Typography>
+              <Typography variant="body2">Search, edit, and track your inventory easily</Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+
+        <Typography align="center" color="text.secondary" mt={4} sx={{ 
+          borderTop: '1px solid', 
+          borderColor: 'grey.200', 
+          pt: 3,
+          fontStyle: 'italic'
+        }}>
+          💡 Pro Tip: Books now require ISBN-13 for better cataloging. General items have flexible field requirements.
         </Typography>
       </Paper>
     </Box>
