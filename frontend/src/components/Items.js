@@ -1138,7 +1138,11 @@ function Items() {
       <Fab
         color="primary"
         aria-label="add"
-        onClick={() => setShowTypeSelector(true)}
+        onClick={() => {
+          console.log('🔵 FAB CLICKED! showTypeSelector current value:', showTypeSelector);
+          setShowTypeSelector(true);
+          console.log('🔵 FAB CLICKED! setShowTypeSelector(true) called');
+        }}
         sx={{
           position: 'fixed',
           bottom: { xs: 20, sm: 32 },
@@ -1558,6 +1562,7 @@ function Items() {
       />
 
       {/* Type Selector Dialog */}
+      {console.log('🟡 RENDERING TYPE SELECTOR - showTypeSelector =', showTypeSelector)}
       <Dialog 
         open={showTypeSelector} 
         onClose={() => setShowTypeSelector(false)}
@@ -1582,7 +1587,11 @@ function Items() {
               <Button
                 fullWidth
                 variant="contained"
-                onClick={() => { setShowTypeSelector(false); openAddDialog('item'); }}
+                onClick={() => { 
+                  console.log('🟢 GENERAL ITEM BUTTON CLICKED');
+                  setShowTypeSelector(false); 
+                  openAddDialog('item'); 
+                }}
                 sx={{
                   py: 2,
                   fontWeight: 600,
@@ -1602,7 +1611,11 @@ function Items() {
               <Button
                 fullWidth
                 variant="contained"
-                onClick={() => { setShowTypeSelector(false); openAddDialog('book'); }}
+                onClick={() => { 
+                  console.log('📕 BOOK BUTTON CLICKED');
+                  setShowTypeSelector(false); 
+                  openAddDialog('book'); 
+                }}
                 sx={{
                   py: 2,
                   fontWeight: 600,
