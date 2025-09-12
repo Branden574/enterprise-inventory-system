@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../utils/axios';
 import {
-  Button, TextField, Select, MenuItem, InputLabel, FormControl, Card, CardContent, CardActions, Typography, Grid, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Fab, Snackbar, Alert, Box, Pagination, Checkbox, FormControlLabel
+  Button, TextField, Select, MenuItem, InputLabel, FormControl, Card, CardContent, CardActions, Typography, Grid, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, Box, Pagination, Checkbox, FormControlLabel, SpeedDial, SpeedDialAction
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -12,8 +12,16 @@ import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import BarcodeScanner from './BarcodeScanner';
 
 function Items() {
-  // EMERGENCY FIX
-  alert("VERSION 3.0.0 - FINAL ATTEMPT");
+  // VERSION 5.0 - Check localStorage for direct HTML flags
+  const [initialType] = useState(() => {
+    if (localStorage.getItem('showAddItemForm') === 'true') {
+      const selectedType = localStorage.getItem('selectedItemType') || 'item';
+      localStorage.removeItem('showAddItemForm');
+      localStorage.removeItem('selectedItemType');
+      return selectedType;
+    }
+    return 'item';
+  });
   // FORCE CODE CHANGES TO BE OBVIOUS - VERSION 2.0.0
   console.log('� Items component loaded - VERSION 2.0.0 - DIRECT SOURCE CODE EDIT');
   const [items, setItems] = useState([]);
@@ -42,7 +50,7 @@ function Items() {
   const [editingId, setEditingId] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   // Simple and clean type selector implementation
-  const [showTypeSelector, setShowTypeSelector] = useState(false);
+  // (Deprecated modal type selector removed in favor of animated SpeedDial)
   const [selectedItemType, setSelectedItemType] = useState('item'); // 'item' or 'book'
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [customFieldsConfig, setCustomFieldsConfig] = useState([]);
@@ -534,17 +542,33 @@ function Items() {
     }
   };
 
-  // COMPLETELY REWRITTEN FOR VERSION 2.0.0
-  const handleAddButtonClick = () => {
-    console.log('� ADD BUTTON CLICKED - OPENING TYPE SELECTOR');
-    setShowTypeSelector(true);
-  };
-
-  // Simple type selection handler
-  const selectItemType = (type) => {
-    console.log('🎯 TYPE SELECTED:', type);
+  // Open dialog directly for a given type (used by SpeedDial actions)
+  const openAddDialog = (type) => {
     setSelectedItemType(type);
-    setShowTypeSelector(false);
+    setEditingId(null);
+    // Reset form when starting a new add flow
+    setForm(prev => ({
+      ...prev,
+      name: '',
+      title: '',
+      quantity: 1,
+      location: '',
+      notes: '',
+      category: '',
+      photo: null,
+      customFields: {},
+      isbn13: '',
+      isbn10: '',
+      cases: 0,
+      caseQty: 0,
+      total: 0,
+      status: '',
+      publisher: '',
+      edition: '',
+      subject: '',
+      gradeLevel: ''
+    }));
+    setImagePreview(null);
     setOpenDialog(true);
   };
 
@@ -771,36 +795,19 @@ function Items() {
           alignItems: { xs: 'stretch', sm: 'center' },
           mb: 1
         }}>
-          {/* EMERGENCY FINAL FIX V3 BUTTON */}
+          {/* Quick add general item button (opens item form directly). Optional. */}
           <Button
             variant="contained"
-            color="error"  
-            onClick={() => {
-              // EMERGENCY FINAL FIX - V3
-              const isBook = window.confirm("VERSION 3.0 CHOOSER\n\nChoose item type:\nPress OK for BOOK\nPress Cancel for GENERAL ITEM");
-              if (isBook) {
-                // For books
-                document.title = "Adding Book";
-                setSelectedItemType('book');
-              } else {
-                // For general items  
-                document.title = "Adding General Item";
-                setSelectedItemType('item');
-              }
-              setOpenDialog(true);
-            }}
+            color="primary"
+            onClick={() => openAddDialog('item')}
             size="medium"
             sx={{ 
               order: { xs: 1, sm: 1 },
               minHeight: '40px',
-              fontWeight: 'bold',
-              backgroundColor: 'green',
-              '&:hover': {
-                backgroundColor: 'darkgreen',
-              }
+              fontWeight: 'bold'
             }}
           >
-            ADD NEW ITEM
+            Add Item
           </Button>
           
           {/* Barcode Search Button */}
@@ -1127,35 +1134,36 @@ function Items() {
         </>
       )}
       
-      {/* Mobile-optimized Floating Action Button */}
-      <Fab 
-        color="primary" 
-        aria-label="add" 
-        onClick={() => {
-          // EMERGENCY FIX V3 - DIRECT FORM MANIPULATION
-          const isBook = window.confirm("Version 3.0 - EMERGENCY FIX\n\nChoose item type:\nPress OK for BOOK\nPress Cancel for GENERAL ITEM");
-          if (isBook) {
-            // For books
-            document.title = "Adding Book";
-            setSelectedItemType('book');
-          } else {
-            // For general items
-            document.title = "Adding General Item";
-            setSelectedItemType('item');
+      {/* Animated SpeedDial for choosing item type */}
+      <SpeedDial
+        ariaLabel="add-item-speed-dial"
+        icon={<AddIcon />}
+        sx={{
+          position: 'fixed',
+          bottom: { xs: 20, sm: 32 },
+          right: { xs: 20, sm: 32 },
+          zIndex: 1300,
+          '& .MuiFab-primary': {
+            animation: 'pulse 1.8s infinite',
+            '@keyframes pulse': {
+              '0%': { boxShadow: '0 0 0 0 rgba(33,150,243,0.6)' },
+              '70%': { boxShadow: '0 0 0 12px rgba(33,150,243,0)' },
+              '100%': { boxShadow: '0 0 0 0 rgba(33,150,243,0)' }
+            }
           }
-          setOpenDialog(true);
-        }} 
-        sx={{ 
-          position: 'fixed', 
-          bottom: { xs: 20, sm: 32 }, 
-          right: { xs: 20, sm: 32 }, 
-          zIndex: 100,
-          width: { xs: 48, sm: 56 },
-          height: { xs: 48, sm: 56 }
         }}
       >
-        <AddIcon />
-      </Fab>
+        <SpeedDialAction
+          icon={<Box component="span" sx={{ fontSize: 22, lineHeight: 1 }}>📦</Box>}
+          tooltipTitle="Add General Item"
+          onClick={() => openAddDialog('item')}
+        />
+        <SpeedDialAction
+          icon={<Box component="span" sx={{ fontSize: 22, lineHeight: 1 }}>📚</Box>}
+          tooltipTitle="Add Book"
+          onClick={() => openAddDialog('book')}
+        />
+      </SpeedDial>
       
       {/* Mobile-responsive Dialog */}
       <Dialog 
@@ -1559,112 +1567,7 @@ function Items() {
         title={scanMode === 'search' ? 'Scan to Search Item' : 'Scan to Add Barcode'}
       />
 
-      {/* Item Type Selector Dialog */}
-      {console.log('🔥 Rendering type selector, showTypeSelector =', showTypeSelector)}
-      <Dialog 
-        open={showTypeSelector} 
-        onClose={() => setShowTypeSelector(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            animation: showTypeSelector ? 'fadeInUp 0.3s ease-out' : 'none',
-            '@keyframes fadeInUp': {
-              '0%': {
-                opacity: 0,
-                transform: 'translateY(30px) scale(0.9)'
-              },
-              '100%': {
-                opacity: 1,
-                transform: 'translateY(0) scale(1)'
-              }
-            }
-          }
-        }}
-      >
-        <DialogTitle sx={{ 
-          textAlign: 'center',
-          pb: 1,
-          fontSize: { xs: '1.25rem', sm: '1.5rem' }
-        }}>
-          What would you like to add?
-        </DialogTitle>
-        <DialogContent sx={{ px: { xs: 2, sm: 3 }, pb: 2 }}>
-          <Grid container spacing={2} justifyContent="center">
-            <Grid item xs={12} sm={6}>
-              <Button
-                variant="contained"
-                size="large"
-                fullWidth
-                onClick={() => selectItemType('item')}
-                sx={{
-                  py: 3,
-                  borderRadius: 2,
-                  background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                  fontSize: { xs: '1rem', sm: '1.1rem' },
-                  fontWeight: 'bold',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 1,
-                  '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 8px 25px rgba(33, 150, 243, 0.3)',
-                    transition: 'all 0.2s ease-in-out'
-                  }
-                }}
-                startIcon={
-                  <Box sx={{ fontSize: '2rem' }}>📦</Box>
-                }
-              >
-                <Box>General Item</Box>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                  Office supplies, equipment, materials, etc.
-                </Typography>
-              </Button>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Button
-                variant="contained"
-                size="large"
-                fullWidth
-                onClick={() => selectItemType('book')}
-                sx={{
-                  py: 3,
-                  borderRadius: 2,
-                  background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E8E 90%)',
-                  fontSize: { xs: '1rem', sm: '1.1rem' },
-                  fontWeight: 'bold',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 1,
-                  '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 8px 25px rgba(255, 107, 107, 0.3)',
-                    transition: 'all 0.2s ease-in-out'
-                  }
-                }}
-                startIcon={
-                  <Box sx={{ fontSize: '2rem' }}>📚</Box>
-                }
-              >
-                <Box>Book</Box>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                  Textbooks, novels, reference materials
-                </Typography>
-              </Button>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
-          <Button 
-            onClick={() => setShowTypeSelector(false)}
-            sx={{ minWidth: 100 }}
-          >
-            Cancel
-          </Button>
-        </DialogActions>
-      </Dialog>
+  {/* (Removed legacy type selector dialog now replaced by SpeedDial) */}
     </Box>
   );
 }
