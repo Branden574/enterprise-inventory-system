@@ -9,6 +9,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import CloseIcon from '@mui/icons-material/Close';
 import BarcodeScanner from './BarcodeScanner';
 
 function Items({ token }) {
@@ -47,8 +50,12 @@ function Items({ token }) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 30;
   const [selectedItems, setSelectedItems] = useState(new Set());
-  const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
   const [userRole, setUserRole] = useState(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewingItem, setViewingItem] = useState(null);
 
   // Get user role
   const getUserRole = () => {
@@ -295,17 +302,113 @@ function Items({ token }) {
     setOpenDialog(true);
   };
 
-  const handleDelete = async id => {
+  // View item details
+  const handleViewItem = (item) => {
+    setViewingItem(item);
+    setViewDialogOpen(true);
+  };
+
+  // Delete confirmation
+  const handleDeleteClick = (id) => {
+    setItemToDelete(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       if (!token) {
         throw new Error('No authentication token found');
       }
 
-      await axios.delete(`/api/items/${id}`, {
+      await axios.delete(`/api/items/${itemToDelete}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      setSnackbar({ open: true, message: 'Item deleted!', severity: 'success' });
+      setSnackbar({ open: true, message: 'Item deleted successfully!', severity: 'success' });
+      fetchItems();
+    } catch (err) {
+      console.error('Delete item error:', err);
+      setSnackbar({ open: true, message: err.response?.data?.error || err.message || 'Failed to delete item', severity: 'error' });
+    } finally {
+      setDeleteConfirmOpen(false);
+      setItemToDelete(null);
+    }
+  };
+
+  // Bulk selection functions
+  const toggleBulkMode = () => {
+    setBulkMode(!bulkMode);
+    setSelectedItems(new Set());
+  };
+
+  const toggleItemSelection = (itemId) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId);
+    } else {
+      newSelected.add(itemId);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const selectAllItems = () => {
+    const allIds = new Set(paginatedItems.map(item => item._id));
+    setSelectedItems(allIds);
+  };
+
+  const clearSelection = () => {
+    setSelectedItems(new Set());
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedItems.size === 0) {
+      setSnackbar({ open: true, message: 'No items selected', severity: 'warning' });
+      return;
+    }
+    // For bulk delete, we'll delete each item individually
+    setItemToDelete(Array.from(selectedItems));
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Handle bulk delete (array of IDs)
+      if (Array.isArray(id)) {
+        let successCount = 0;
+        let errorCount = 0;
+        
+        for (const itemId of id) {
+          try {
+            await axios.delete(`/api/items/${itemId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            successCount++;
+          } catch (err) {
+            console.error(`Error deleting item ${itemId}:`, err);
+            errorCount++;
+          }
+        }
+        
+        if (errorCount === 0) {
+          setSnackbar({ open: true, message: `${successCount} items deleted successfully!`, severity: 'success' });
+        } else {
+          setSnackbar({ open: true, message: `${successCount} items deleted, ${errorCount} failed`, severity: 'warning' });
+        }
+        
+        clearSelection(); // Clear selection after bulk delete
+      } else {
+        // Handle single delete
+        await axios.delete(`/api/items/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setSnackbar({ open: true, message: 'Item deleted!', severity: 'success' });
+      }
+      
       fetchItems();
     } catch (err) {
       console.error('Delete item error:', err);
@@ -416,6 +519,61 @@ function Items({ token }) {
           }}
         />
         
+        {/* Bulk Selection Controls */}
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          mb: 2,
+          p: 1,
+          backgroundColor: bulkMode ? 'primary.light' : 'transparent',
+          borderRadius: 1,
+          border: bulkMode ? '1px solid' : 'none',
+          borderColor: 'primary.main'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Button
+              variant={bulkMode ? "contained" : "outlined"}
+              onClick={toggleBulkMode}
+              size="small"
+              startIcon={bulkMode ? <CheckBoxIcon /> : <CheckBoxOutlineBlankIcon />}
+            >
+              {bulkMode ? 'Exit Selection' : 'Select Items'}
+            </Button>
+            {bulkMode && (
+              <>
+                <Button
+                  variant="outlined"
+                  onClick={selectAllItems}
+                  size="small"
+                  disabled={paginatedItems.length === 0}
+                >
+                  Select All ({paginatedItems.length})
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={clearSelection}
+                  size="small"
+                  disabled={selectedItems.size === 0}
+                >
+                  Clear ({selectedItems.size})
+                </Button>
+              </>
+            )}
+          </Box>
+          {bulkMode && selectedItems.size > 0 && (
+            <Button
+              variant="contained"
+              color="error"
+              onClick={handleBulkDelete}
+              size="small"
+              startIcon={<DeleteIcon />}
+            >
+              Delete Selected ({selectedItems.size})
+            </Button>
+          )}
+        </Box>
+        
         <Box sx={{
           display: 'flex',
           flexDirection: { xs: 'column', sm: 'row' },
@@ -502,12 +660,26 @@ function Items({ token }) {
                   boxShadow: 4, 
                   borderRadius: 3, 
                   transition: '0.2s', 
-                  '&:hover': { boxShadow: 8, transform: 'translateY(-4px) scale(1.03)' },
+                  '&:hover': { boxShadow: 8, transform: 'translateY(-4px) scale(1.03)', cursor: 'pointer' },
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
                   position: 'relative'
-                }}>
+                }} onClick={() => handleViewItem(item)}>
+                  {/* Bulk selection checkbox */}
+                  {bulkMode && (
+                    <Box sx={{ position: 'absolute', top: 8, left: 8, zIndex: 1 }}>
+                      <Checkbox
+                        checked={selectedItems.has(item._id)}
+                        onChange={(e) => {
+                          e.stopPropagation(); // Prevent card click
+                          toggleItemSelection(item._id);
+                        }}
+                        size="small"
+                        sx={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', borderRadius: 1 }}
+                      />
+                    </Box>
+                  )}
                   <CardContent sx={{ flexGrow: 1 }}>
                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                       {item.photo && <img src={item.photo} alt={item.name} style={{ 
@@ -577,14 +749,20 @@ function Items({ token }) {
                   <CardActions sx={{ justifyContent: 'center', pt: 0 }}>
                     <IconButton 
                       color="primary" 
-                      onClick={() => handleEdit(item)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent card click
+                        handleEdit(item);
+                      }}
                       size="small"
                     >
                       <EditIcon />
                     </IconButton>
                     <IconButton 
                       color="error" 
-                      onClick={() => handleDelete(item._id)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent card click
+                        handleDeleteClick(item._id);
+                      }}
                       size="small"
                     >
                       <DeleteIcon />
@@ -855,6 +1033,174 @@ function Items({ token }) {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Confirm Deletion
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            {Array.isArray(itemToDelete) 
+              ? `Are you sure you want to permanently delete ${itemToDelete.length} selected items?`
+              : 'Are you sure you want to permanently delete this item?'
+            }
+          </Typography>
+          <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm} 
+            color="error" 
+            variant="contained"
+            autoFocus
+          >
+            Delete Permanently
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Item Details Dialog */}
+      <Dialog
+        open={viewDialogOpen}
+        onClose={() => setViewDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6">Item Details</Typography>
+          <IconButton onClick={() => setViewDialogOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {viewingItem && (
+            <Grid container spacing={2}>
+              {viewingItem.photo && (
+                <Grid item xs={12} md={4}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <img
+                      src={viewingItem.photo}
+                      alt={viewingItem.name}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: 300,
+                        borderRadius: 8,
+                        objectFit: 'contain'
+                      }}
+                    />
+                  </Box>
+                </Grid>
+              )}
+              <Grid item xs={12} md={viewingItem.photo ? 8 : 12}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <Typography variant="h5" component="h2" gutterBottom>
+                    {viewingItem.name}
+                  </Typography>
+                  
+                  {viewingItem.title && (
+                    <Typography variant="h6" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                      {viewingItem.title}
+                    </Typography>
+                  )}
+                  
+                  {viewingItem.author && (
+                    <Typography><strong>Author:</strong> {viewingItem.author}</Typography>
+                  )}
+                  
+                  {viewingItem.isbn && (
+                    <Typography><strong>ISBN-13:</strong> {viewingItem.isbn}</Typography>
+                  )}
+                  
+                  <Typography><strong>Quantity:</strong> {viewingItem.quantity}</Typography>
+                  <Typography><strong>Location:</strong> {viewingItem.location}</Typography>
+                  <Typography><strong>Category:</strong> {viewingItem.category?.name || 'None'}</Typography>
+                  
+                  {viewingItem.status && (
+                    <Typography><strong>Status:</strong> {viewingItem.status}</Typography>
+                  )}
+                  
+                  {viewingItem.description && (
+                    <Box>
+                      <Typography variant="h6" gutterBottom>Description:</Typography>
+                      <Typography>{viewingItem.description}</Typography>
+                    </Box>
+                  )}
+                  
+                  {/* Display custom fields */}
+                  {Object.entries(viewingItem).map(([key, value]) => {
+                    // Skip standard fields
+                    const standardFields = ['_id', '__v', 'name', 'title', 'author', 'isbn', 'quantity', 'location', 'category', 'status', 'description', 'photo', 'createdAt', 'updatedAt'];
+                    if (!standardFields.includes(key) && value !== null && value !== undefined) {
+                      // Handle different value types
+                      let displayValue;
+                      if (typeof value === 'object') {
+                        // For objects, either display a specific property or stringify
+                        if (value.username) {
+                          displayValue = value.username;
+                        } else if (value.name) {
+                          displayValue = value.name;
+                        } else {
+                          displayValue = JSON.stringify(value);
+                        }
+                      } else {
+                        displayValue = String(value);
+                      }
+                      
+                      return (
+                        <Typography key={key}>
+                          <strong>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong> {displayValue}
+                        </Typography>
+                      );
+                    }
+                    return null;
+                  })}
+                </Box>
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewDialogOpen(false)}>
+            Close
+          </Button>
+          {viewingItem && (
+            <>
+              <Button 
+                onClick={() => {
+                  setViewDialogOpen(false);
+                  handleEdit(viewingItem);
+                }} 
+                variant="outlined"
+                startIcon={<EditIcon />}
+              >
+                Edit
+              </Button>
+              <Button 
+                onClick={() => {
+                  setViewDialogOpen(false);
+                  handleDeleteClick(viewingItem._id);
+                }} 
+                color="error"
+                variant="outlined"
+                startIcon={<DeleteIcon />}
+              >
+                Delete
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -12,18 +12,27 @@ class NotificationService {
 
   // Initialize socket connection
   connect(token, userRole) {
+    // Don't connect if no token provided
+    if (!token) {
+      console.log('⚠️ No token provided for socket connection, skipping...');
+      return;
+    }
+
     try {
       // Use environment variable or default to production URL
       const socketUrl = process.env.NODE_ENV === 'development' 
         ? 'http://localhost:5000' 
         : 'https://enterprise-inventory-system-production.up.railway.app';
 
+      console.log('🔌 Attempting to connect to socket with token:', !!token);
+
       this.socket = io(socketUrl, {
-        auth: { token },
+        auth: { token: token },
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: this.maxReconnectAttempts,
         reconnectionDelay: 1000,
+        autoConnect: true
       });
 
       this.socket.on('connect', () => {
@@ -41,8 +50,15 @@ class NotificationService {
       });
 
       this.socket.on('connect_error', (error) => {
-        console.error('🔌 Socket connection error:', error);
+        console.error('🔌 Socket connection error:', error.message);
         this.reconnectAttempts++;
+        
+        // If it's an authentication error, don't keep trying to reconnect
+        if (error.message && error.message.includes('Authentication error')) {
+          console.log('🔐 Socket authentication failed, stopping reconnection attempts');
+          this.socket.disconnect();
+          return;
+        }
       });
 
       // Listen for different notification types

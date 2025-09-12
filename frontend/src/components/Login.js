@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../utils/axios';
 import { Button, TextField, Typography, Box, Alert, FormControlLabel, Checkbox, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
-
-// Configure axios to use the backend URL
-axios.defaults.baseURL = 'https://enterprise-inventory-system-production.up.railway.app';
-
 
 function Login({ onSwitch, onLogin }) {
   const navigate = useNavigate();
