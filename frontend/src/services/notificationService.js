@@ -18,20 +18,29 @@ class NotificationService {
       return;
     }
 
+    // Don't reconnect if already connected or too many failed attempts
+    if (this.isConnected || this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.log('🔌 Socket connection skipped - already connected or max attempts reached');
+      return;
+    }
+
     try {
       // Use environment variable or default to production URL
       const socketUrl = process.env.NODE_ENV === 'development' 
         ? 'http://localhost:5000' 
         : 'https://enterprise-inventory-system-production.up.railway.app';
 
-      console.log('🔌 Attempting to connect to socket with token:', !!token);
+      console.log('🔌 Attempting to connect to socket...', { 
+        attempt: this.reconnectAttempts + 1, 
+        maxAttempts: this.maxReconnectAttempts,
+        url: socketUrl 
+      });
 
       this.socket = io(socketUrl, {
         auth: { token: token },
         transports: ['websocket', 'polling'],
-        reconnection: true,
-        reconnectionAttempts: this.maxReconnectAttempts,
-        reconnectionDelay: 1000,
+        reconnection: false, // Disable automatic reconnection to prevent spam
+        timeout: 10000, // 10 second timeout
         autoConnect: true
       });
 
@@ -50,14 +59,40 @@ class NotificationService {
       });
 
       this.socket.on('connect_error', (error) => {
-        console.error('🔌 Socket connection error:', error.message);
+        console.error('🔌 Socket connection failed:', error.message);
         this.reconnectAttempts++;
+        this.isConnected = false;
         
-        // If it's an authentication error, don't keep trying to reconnect
+        // If it's an authentication error or max attempts reached, stop trying
         if (error.message && error.message.includes('Authentication error')) {
-          console.log('🔐 Socket authentication failed, stopping reconnection attempts');
-          this.socket.disconnect();
+          console.log('🔐 Socket authentication failed, disabling socket connection');
+          this.disconnect();
           return;
+        }
+        
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+          console.log('🚫 Max socket connection attempts reached, disabling socket connection');
+          this.disconnect();
+          return;
+        }
+        
+        // Wait before next attempt
+        setTimeout(() => {
+          if (!this.isConnected && this.reconnectAttempts < this.maxReconnectAttempts) {
+            console.log(`🔄 Retrying socket connection (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+            this.connect(token, userRole);
+          }
+        }, 5000 * this.reconnectAttempts); // Exponential backoff
+      });
+
+      this.socket.on('connect_timeout', () => {
+        console.error('🕐 Socket connection timeout');
+        this.reconnectAttempts++;
+        this.isConnected = false;
+        
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+          console.log('🚫 Max socket connection attempts reached due to timeout');
+          this.disconnect();
         }
       });
 

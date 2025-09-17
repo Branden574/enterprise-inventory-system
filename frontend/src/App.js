@@ -254,8 +254,9 @@ function App() {
       const remembered = localStorage.getItem('rememberMe') === 'true';
       const userRole = remembered ? localStorage.getItem('role') : sessionStorage.getItem('role');
       
-      // Connect to notification service
-      notificationService.connect(token, userRole);
+      // Temporarily disable socket connection due to backend issues
+      console.log('🔧 Socket connection temporarily disabled due to backend connectivity issues');
+      // notificationService.connect(token, userRole);
     } else {
       // Disconnect when user logs out
       notificationService.disconnect();
@@ -309,8 +310,8 @@ function App() {
         <Router>
         <Navbar token={token} setToken={setToken} />
         
-        {/* Live Notifications Component */}
-        {token && <LiveNotifications />}
+        {/* Live Notifications Component - Temporarily disabled due to backend issues */}
+        {/* {token && <LiveNotifications />} */}
         
         <Box sx={{ 
           width: '100%', 
