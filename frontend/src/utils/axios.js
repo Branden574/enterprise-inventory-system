@@ -1,7 +1,15 @@
 import axios from 'axios';
 
+// Determine API URL based on environment
+const getBaseURL = () => {
+  // Use localhost for development, Railway URL for production
+  return process.env.NODE_ENV === 'development' 
+    ? 'http://localhost:5000' 
+    : 'https://enterprise-inventory-system-production.up.railway.app';
+};
+
 const instance = axios.create({
-  baseURL: 'https://enterprise-inventory-system-production.up.railway.app',
+  baseURL: getBaseURL(),
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
@@ -37,6 +45,13 @@ instance.interceptors.response.use(
     return response;
   },
   async (error) => {
+    // Handle network errors (like ERR_CONNECTION_RESET)
+    if (error.message === 'Network Error') {
+      console.error('Network connection error. Please check your internet connection and try again.');
+      // You could also add custom UI handling for network errors here
+      return Promise.reject(new Error('Network connection issue. Please check your internet connection.'));
+    }
+    
     console.error('Axios response error:', error.response?.status, error.response?.data, error.config?.url);
     
     // Handle 401 errors (invalid/expired tokens) - but only for non-auth endpoints

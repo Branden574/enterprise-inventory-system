@@ -18,12 +18,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // CORS configuration for Railway
-app.use(cors({
-  origin: true, // Allow all origins for now
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Role']
-}));
+const corsOptions = require('./config/cors');
+app.use(cors(corsOptions));
 
 // Trust proxy for Railway
 app.set('trust proxy', 1);
@@ -42,17 +38,20 @@ const connectToDatabase = async () => {
       return false;
     }
 
+    console.log('Connecting to MongoDB...');
     await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 10000,
-      socketTimeoutMS: 45000
+      serverSelectionTimeoutMS: 10000,  // Increased timeout
+      connectTimeoutMS: 15000,          // Increased timeout
+      socketTimeoutMS: 60000            // Increased timeout for long operations
     });
-    console.log('✅ MongoDB connected successfully');
+    console.log('✅ MongoDB connected successfully to:', 
+      process.env.MONGO_URI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')); // Log URI without exposing credentials
     return true;
   } catch (error) {
     console.warn('⚠️ MongoDB connection failed:', error.message);
+    console.warn('Connection string format may be incorrect or database might be unreachable');
     return false;
   }
 };
@@ -89,6 +88,33 @@ app.get('/api/health', (req, res) => {
 // Simple test endpoint
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
+});
+
+// Connection troubleshooting endpoint
+app.get('/api/debug/connection', (req, res) => {
+  // Collect diagnostic information
+  const diagnostics = {
+    timestamp: new Date().toISOString(),
+    server: {
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      nodeVersion: process.version,
+      env: process.env.NODE_ENV
+    },
+    database: {
+      connected: mongoose.connection.readyState === 1,
+      state: ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState] || 'unknown',
+      hasMongoUri: !!process.env.MONGO_URI,
+    },
+    request: {
+      ip: req.ip,
+      headers: req.headers,
+      protocol: req.protocol,
+      secure: req.secure
+    }
+  };
+  
+  res.json(diagnostics);
 });
 
 // Load routes only after server is ready
