@@ -77,14 +77,20 @@ try {
   const categoriesRoutes = require('./routes/categories');
   const usersRoutes = require('./routes/users');
   const auditLogsRoutes = require('./routes/auditLogs');
-  const { router: healthRoutes } = require('./routes/health');
+  const customFieldsRoutes = require('./routes/customFields');
+  const purchaseOrdersRoutes = require('./routes/purchaseOrders');
+  const notificationsRoutes = require('./routes/notifications');
+  const importExportRoutes = require('./routes/import-export');
   
   app.use('/api/auth', authRoutes);
   app.use('/api/items', itemsRoutes);
   app.use('/api/categories', categoriesRoutes);
   app.use('/api/users', usersRoutes);
   app.use('/api/audit-logs', auditLogsRoutes);
-  app.use('/api/health', healthRoutes);
+  app.use('/api/customFields', customFieldsRoutes);
+  app.use('/api/purchase-orders', purchaseOrdersRoutes);
+  app.use('/api/notifications', notificationsRoutes);
+  app.use('/api/import-export', importExportRoutes);
   
   console.log('✅ Routes loaded');
 } catch (error) {
