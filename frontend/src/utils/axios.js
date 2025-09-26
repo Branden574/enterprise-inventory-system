@@ -2,10 +2,16 @@ import axios from 'axios';
 
 // Determine API URL based on environment
 const getBaseURL = () => {
-  // Use localhost for development, Railway URL for production
-  return process.env.NODE_ENV === 'development' 
+  // Log the current environment for debugging
+  console.log('Current NODE_ENV:', process.env.NODE_ENV);
+  
+  // Always use localhost during development
+  const baseURL = process.env.NODE_ENV === 'development' 
     ? 'http://localhost:5000' 
     : 'https://enterprise-inventory-system-production.up.railway.app';
+  
+  console.log('Using API base URL:', baseURL);
+  return baseURL;
 };
 
 const instance = axios.create({
