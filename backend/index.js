@@ -1,4 +1,8 @@
 require('dotenv').config();
+
+// Perform startup checks before initializing the app
+const { performStartupChecks } = require('./startup');
+
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -350,13 +354,21 @@ const server = http.createServer(app);
 socketService.initialize(server);
 
 if (require.main === module) {
-  server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log('🔔 Real-time notifications enabled');
-    
-    // Start low stock monitoring
-    const { startLowStockMonitoring } = require('./services/alertService');
-    startLowStockMonitoring();
+  // Perform startup checks before starting the server
+  performStartupChecks().then(() => {
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`MongoDB URI: ${process.env.MONGO_URI ? 'Set' : 'Not set'}`);
+      console.log('🔔 Real-time notifications enabled');
+      
+      // Start low stock monitoring
+      const { startLowStockMonitoring } = require('./services/alertService');
+      startLowStockMonitoring();
+    });
+  }).catch(error => {
+    console.error('Startup checks failed:', error);
+    process.exit(1);
   });
 }
 

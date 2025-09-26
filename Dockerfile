@@ -24,8 +24,8 @@ COPY backend/ ./
 COPY --from=frontend-build /app/frontend/build ./public
 RUN echo "Frontend build copied at $(date)" > ./public/build-timestamp.txt
 
-# Expose port
-EXPOSE 3001
+# Expose port (Railway uses PORT environment variable)
+EXPOSE $PORT
 
 # Start the application
 CMD ["npm", "start"]
