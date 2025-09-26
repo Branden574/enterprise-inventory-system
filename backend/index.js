@@ -1,8 +1,5 @@
 require('dotenv').config();
 
-// Perform startup checks before initializing the app
-const { performStartupChecks } = require('./startup');
-
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -354,21 +351,21 @@ const server = http.createServer(app);
 socketService.initialize(server);
 
 if (require.main === module) {
-  // Perform startup checks before starting the server
-  performStartupChecks().then(() => {
-    server.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`MongoDB URI: ${process.env.MONGO_URI ? 'Set' : 'Not set'}`);
-      console.log('🔔 Real-time notifications enabled');
-      
-      // Start low stock monitoring
-      const { startLowStockMonitoring } = require('./services/alertService');
-      startLowStockMonitoring();
-    });
-  }).catch(error => {
-    console.error('Startup checks failed:', error);
-    process.exit(1);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`MongoDB URI: ${process.env.MONGO_URI ? 'Set' : 'Not set'}`);
+    console.log('🔔 Real-time notifications enabled');
+    
+    // Start low stock monitoring after a short delay to ensure everything is initialized
+    setTimeout(() => {
+      try {
+        const { startLowStockMonitoring } = require('./services/alertService');
+        startLowStockMonitoring();
+      } catch (error) {
+        console.warn('Could not start low stock monitoring:', error.message);
+      }
+    }, 5000);
   });
 }
 
