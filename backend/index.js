@@ -109,6 +109,26 @@ app.use((req, res, next) => {
   next();
 });
 
+// Middleware to check database connection for API routes
+app.use('/api', (req, res, next) => {
+  // Skip database check for health endpoints
+  if (req.path.startsWith('/health')) {
+    return next();
+  }
+  
+  // Check if database is connected
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      error: 'Database not available',
+      message: 'The application is starting up. Please try again in a moment.',
+      status: 'connecting',
+      timestamp: new Date().toISOString()
+    });
+  }
+  
+  next();
+});
+
 // Enhanced MongoDB connection with enterprise resilience
 const CircuitBreaker = require('./utils/circuitBreaker');
 
@@ -117,9 +137,9 @@ const mongoOptions = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   maxPoolSize: 50,
-  serverSelectionTimeoutMS: 5000,
+  serverSelectionTimeoutMS: 3000, // Reduced from 5000
   socketTimeoutMS: 45000,
-  connectTimeoutMS: 10000,
+  connectTimeoutMS: 5000, // Reduced from 10000
   family: 4,
   // Enterprise resilience options
   retryWrites: true,
@@ -143,7 +163,7 @@ async function connectToMongoDB() {
   });
 }
 
-// Connect with retry logic
+// Non-blocking database initialization
 async function initializeDatabase() {
   const maxRetries = 5;
   let retryCount = 0;
@@ -151,27 +171,34 @@ async function initializeDatabase() {
   while (retryCount < maxRetries) {
     try {
       await connectToMongoDB();
-      break;
+      console.log('✅ Database connection established successfully');
+      return true;
     } catch (err) {
       retryCount++;
       console.error(`MongoDB connection attempt ${retryCount}/${maxRetries} failed:`, err.message);
       
       if (retryCount >= maxRetries) {
-        console.error('Max retries reached. Exiting...');
-        process.exit(1);
+        console.error('❌ Max retries reached. App will continue without database connection.');
+        return false;
       }
       
-      const delay = Math.min(1000 * Math.pow(2, retryCount), 30000); // Exponential backoff, max 30s
-      console.log(`Retrying in ${delay}ms...`);
+      const delay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Reduced max delay to 10s
+      console.log(`⏳ Retrying in ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
 }
 
-// Initialize database connection
-initializeDatabase().catch(err => {
-  console.error('Database initialization failed:', err);
-  process.exit(1);
+// Start database connection in background (non-blocking)
+console.log('🚀 Starting database connection...');
+initializeDatabase().then(connected => {
+  if (connected) {
+    console.log('✅ Database ready for operations');
+  } else {
+    console.warn('⚠️ App running without database connection');
+  }
+}).catch(err => {
+  console.error('❌ Database initialization error:', err);
 });
 
 // Handle MongoDB connection events
@@ -351,21 +378,24 @@ const server = http.createServer(app);
 socketService.initialize(server);
 
 if (require.main === module) {
+  // Start server immediately (don't wait for database)
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`MongoDB URI: ${process.env.MONGO_URI ? 'Set' : 'Not set'}`);
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🗄️ MongoDB URI: ${process.env.MONGO_URI ? 'Set' : 'Not set'}`);
     console.log('🔔 Real-time notifications enabled');
+    console.log('✨ Application ready to accept connections');
     
-    // Start low stock monitoring after a short delay to ensure everything is initialized
+    // Start optional services after a delay
     setTimeout(() => {
       try {
         const { startLowStockMonitoring } = require('./services/alertService');
         startLowStockMonitoring();
+        console.log('📈 Low stock monitoring started');
       } catch (error) {
-        console.warn('Could not start low stock monitoring:', error.message);
+        console.warn('⚠️ Could not start low stock monitoring:', error.message);
       }
-    }, 5000);
+    }, 2000); // Short delay to ensure everything is initialized
   });
 }
 

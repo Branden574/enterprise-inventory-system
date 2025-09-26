@@ -86,10 +86,13 @@ const AuditTrail = ({ userRole }) => {
   const fetchRecentActivity = async () => {
     try {
       setLoading(true);
+      setError(''); // Clear previous errors
       const response = await axios.get('/api/audit-logs/recent?limit=20');
-      setRecentActivity(response.data);
+      setRecentActivity(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
-      setError('Failed to fetch recent activity');
+      console.error('Error fetching recent activity:', err);
+      setError(`Failed to fetch recent activity: ${err.response?.data?.message || err.message}`);
+      setRecentActivity([]); // Ensure it's always an array
     } finally {
       setLoading(false);
     }
@@ -98,6 +101,7 @@ const AuditTrail = ({ userRole }) => {
   const fetchAuditLogs = async () => {
     try {
       setLoading(true);
+      setError(''); // Clear previous errors
       const params = new URLSearchParams();
       Object.keys(filters).forEach(key => {
         if (filters[key]) {
@@ -106,9 +110,18 @@ const AuditTrail = ({ userRole }) => {
       });
       
       const response = await axios.get(`/api/audit-logs?${params}`);
-      setAuditLogs(response.data.auditLogs);
+      
+      // Ensure we have the expected response structure
+      if (response.data && response.data.auditLogs) {
+        setAuditLogs(response.data.auditLogs);
+      } else {
+        // Handle case where response structure is different
+        setAuditLogs(Array.isArray(response.data) ? response.data : []);
+      }
     } catch (err) {
-      setError('Failed to fetch audit logs');
+      console.error('Error fetching audit logs:', err);
+      setError(`Failed to fetch audit logs: ${err.response?.data?.message || err.message}`);
+      setAuditLogs([]); // Ensure auditLogs is always an array
     } finally {
       setLoading(false);
     }
@@ -117,10 +130,13 @@ const AuditTrail = ({ userRole }) => {
   const fetchAuditStats = async () => {
     try {
       setLoading(true);
+      setError(''); // Clear previous errors
       const response = await axios.get('/api/audit-logs/stats');
       setStats(response.data);
     } catch (err) {
-      setError('Failed to fetch audit statistics');
+      console.error('Error fetching audit statistics:', err);
+      setError(`Failed to fetch audit statistics: ${err.response?.data?.message || err.message}`);
+      setStats(null);
     } finally {
       setLoading(false);
     }
@@ -217,41 +233,53 @@ const AuditTrail = ({ userRole }) => {
             <Typography variant="h6" gutterBottom>
               Recent User Activity (Last 20 actions)
             </Typography>
-            <List>
-              {recentActivity.map((log) => (
-                <ListItem key={log._id} divider>
-                  <ListItemAvatar>
-                    <Avatar>
-                      {getActionIcon(log.action)}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body1">
-                          {log.description || `${log.action} on ${log.entityType}`}
-                        </Typography>
-                        <Chip 
-                          label={log.action} 
-                          size="small" 
-                          color={getActionColor(log.action)}
-                        />
-                      </Box>
-                    }
-                    secondary={
-                      <Box>
-                        <Typography variant="body2" color="textSecondary">
-                          By: {log.userEmail} ({log.userRole})
-                        </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          {formatTimestamp(log.timestamp)}
-                        </Typography>
-                      </Box>
-                    }
-                  />
-                </ListItem>
-              ))}
-            </List>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <Typography>Loading recent activity...</Typography>
+              </Box>
+            ) : recentActivity && recentActivity.length > 0 ? (
+              <List>
+                {recentActivity.map((log) => (
+                  <ListItem key={log._id} divider>
+                    <ListItemAvatar>
+                      <Avatar>
+                        {getActionIcon(log.action)}
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body1">
+                            {log.description || `${log.action} on ${log.entityType}`}
+                          </Typography>
+                          <Chip 
+                            label={log.action} 
+                            size="small" 
+                            color={getActionColor(log.action)}
+                          />
+                        </Box>
+                      }
+                      secondary={
+                        <Box>
+                          <Typography variant="body2" color="textSecondary">
+                            By: {log.userEmail} ({log.userRole})
+                          </Typography>
+                          <Typography variant="caption" color="textSecondary">
+                            {formatTimestamp(log.timestamp)}
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body2" color="textSecondary">
+                  No recent activity found
+                </Typography>
+              </Box>
+            )}
           </Box>
         )}
 
@@ -335,134 +363,178 @@ const AuditTrail = ({ userRole }) => {
             </Grid>
 
             {/* Audit Log Table */}
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Timestamp</TableCell>
-                    <TableCell>User</TableCell>
-                    <TableCell>Action</TableCell>
-                    <TableCell>Entity</TableCell>
-                    <TableCell>Description</TableCell>
-                    <TableCell>Details</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {auditLogs.map((log) => (
-                    <React.Fragment key={log._id}>
-                      <TableRow>
-                        <TableCell>{formatTimestamp(log.timestamp)}</TableCell>
-                        <TableCell>
-                          <Box>
-                            <Typography variant="body2">{log.userEmail}</Typography>
-                            <Typography variant="caption" color="textSecondary">
-                              ({log.userRole})
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Chip 
-                            icon={getActionIcon(log.action)}
-                            label={log.action} 
-                            size="small" 
-                            color={getActionColor(log.action)}
-                          />
-                        </TableCell>
-                        <TableCell>{log.entityType}</TableCell>
-                        <TableCell>{log.description}</TableCell>
-                        <TableCell>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleExpandClick(log._id)}
-                          >
-                            {expandedRow === log._id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell colSpan={6} sx={{ py: 0 }}>
-                          <Collapse in={expandedRow === log._id}>
-                            <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
-                              <Grid container spacing={2}>
-                                <Grid item xs={6}>
-                                  <Typography variant="subtitle2">IP Address:</Typography>
-                                  <Typography variant="body2">{log.ipAddress || 'N/A'}</Typography>
-                                </Grid>
-                                <Grid item xs={6}>
-                                  <Typography variant="subtitle2">User Agent:</Typography>
-                                  <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>
-                                    {log.userAgent || 'N/A'}
-                                  </Typography>
-                                </Grid>
-                                {Object.keys(log.changes).length > 0 && (
-                                  <Grid item xs={12}>
-                                    <Typography variant="subtitle2">Changes:</Typography>
-                                    <pre style={{ fontSize: '12px', overflow: 'auto' }}>
-                                      {JSON.stringify(log.changes, null, 2)}
-                                    </pre>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <Typography>Loading audit logs...</Typography>
+              </Box>
+            ) : error ? (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            ) : (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Timestamp</TableCell>
+                      <TableCell>User</TableCell>
+                      <TableCell>Action</TableCell>
+                      <TableCell>Entity</TableCell>
+                      <TableCell>Description</TableCell>
+                      <TableCell>Details</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {auditLogs && auditLogs.length > 0 ? (
+                      auditLogs.map((log) => (
+                        <React.Fragment key={log._id}>
+                          <TableRow>
+                            <TableCell>{formatTimestamp(log.timestamp)}</TableCell>
+                            <TableCell>
+                              <Box>
+                                <Typography variant="body2">{log.userEmail}</Typography>
+                                <Typography variant="caption" color="textSecondary">
+                                  ({log.userRole})
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Chip 
+                                icon={getActionIcon(log.action)}
+                                label={log.action} 
+                                size="small" 
+                                color={getActionColor(log.action)}
+                              />
+                            </TableCell>
+                            <TableCell>{log.entityType}</TableCell>
+                            <TableCell>{log.description}</TableCell>
+                            <TableCell>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleExpandClick(log._id)}
+                              >
+                                {expandedRow === log._id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell colSpan={6} sx={{ py: 0 }}>
+                              <Collapse in={expandedRow === log._id}>
+                                <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
+                                  <Grid container spacing={2}>
+                                    <Grid item xs={6}>
+                                      <Typography variant="subtitle2">IP Address:</Typography>
+                                      <Typography variant="body2">{log.ipAddress || 'N/A'}</Typography>
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                      <Typography variant="subtitle2">User Agent:</Typography>
+                                      <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>
+                                        {log.userAgent || 'N/A'}
+                                      </Typography>
+                                    </Grid>
+                                    {log.changes && Object.keys(log.changes).length > 0 && (
+                                      <Grid item xs={12}>
+                                        <Typography variant="subtitle2">Changes:</Typography>
+                                        <pre style={{ fontSize: '12px', overflow: 'auto' }}>
+                                          {JSON.stringify(log.changes, null, 2)}
+                                        </pre>
+                                      </Grid>
+                                    )}
                                   </Grid>
-                                )}
-                              </Grid>
-                            </Box>
-                          </Collapse>
+                                </Box>
+                              </Collapse>
+                            </TableCell>
+                          </TableRow>
+                        </React.Fragment>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                          <Typography variant="body2" color="textSecondary">
+                            No audit logs found for the selected criteria
+                          </Typography>
                         </TableCell>
                       </TableRow>
-                    </React.Fragment>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
           </Box>
         )}
 
         {/* Statistics Tab */}
-        {tabValue === 2 && stats && (
+        {tabValue === 2 && (
           <Box sx={{ p: 2 }}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Actions by Type
-                    </Typography>
-                    <List>
-                      {stats.actionStats.map((stat) => (
-                        <ListItem key={stat._id}>
-                          <ListItemText 
-                            primary={stat._id} 
-                            secondary={`${stat.count} actions`}
-                          />
-                          <Chip 
-                            label={stat.count} 
-                            color={getActionColor(stat._id)}
-                          />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </CardContent>
-                </Card>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <Typography>Loading statistics...</Typography>
+              </Box>
+            ) : stats ? (
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Actions by Type
+                      </Typography>
+                      <List>
+                        {stats.actionStats && stats.actionStats.length > 0 ? (
+                          stats.actionStats.map((stat) => (
+                            <ListItem key={stat._id}>
+                              <ListItemText 
+                                primary={stat._id} 
+                                secondary={`${stat.count} actions`}
+                              />
+                              <Chip 
+                                label={stat.count} 
+                                color={getActionColor(stat._id)}
+                              />
+                            </ListItem>
+                          ))
+                        ) : (
+                          <ListItem>
+                            <ListItemText primary="No action statistics available" />
+                          </ListItem>
+                        )}
+                      </List>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Card>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Most Active Users
+                      </Typography>
+                      <List>
+                        {stats.userStats && stats.userStats.length > 0 ? (
+                          stats.userStats.slice(0, 10).map((stat, index) => (
+                            <ListItem key={stat._id}>
+                              <ListItemText 
+                                primary={stat.userEmail} 
+                                secondary={`${stat.userRole} - ${stat.count} actions`}
+                              />
+                              <Chip label={`#${index + 1}`} variant="outlined" />
+                            </ListItem>
+                          ))
+                        ) : (
+                          <ListItem>
+                            <ListItemText primary="No user statistics available" />
+                          </ListItem>
+                        )}
+                      </List>
+                    </CardContent>
+                  </Card>
+                </Grid>
               </Grid>
-              <Grid item xs={12} md={6}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Most Active Users
-                    </Typography>
-                    <List>
-                      {stats.userStats.slice(0, 10).map((stat, index) => (
-                        <ListItem key={stat._id}>
-                          <ListItemText 
-                            primary={stat.userEmail} 
-                            secondary={`${stat.userRole} - ${stat.count} actions`}
-                          />
-                          <Chip label={`#${index + 1}`} variant="outlined" />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body2" color="textSecondary">
+                  No statistics available
+                </Typography>
+              </Box>
+            )}
           </Box>
         )}
       </Paper>
