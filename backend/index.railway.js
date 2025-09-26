@@ -102,6 +102,11 @@ const loadRoutes = () => {
     const categoriesRoutes = require('./routes/categories');
     const usersRoutes = require('./routes/users');
     const auditLogsRoutes = require('./routes/auditLogs');
+    const internalOrdersRoutes = require('./routes/internalOrders');
+    const purchaseOrdersRoutes = require('./routes/purchaseOrders');
+    const notificationsRoutes = require('./routes/notifications');
+    const customFieldsRoutes = require('./routes/customFields');
+    const importExportRoutes = require('./routes/import-export');
     
     // Apply routes
     app.use('/api/auth', authRoutes);
@@ -109,6 +114,11 @@ const loadRoutes = () => {
     app.use('/api/categories', categoriesRoutes);
     app.use('/api/users', usersRoutes);
     app.use('/api/audit-logs', auditLogsRoutes);
+    app.use('/api/internal-orders', internalOrdersRoutes);
+    app.use('/api/purchase-orders', purchaseOrdersRoutes);
+    app.use('/api/notifications', notificationsRoutes);
+    app.use('/api/customFields', customFieldsRoutes);
+    app.use('/api/import-export', importExportRoutes);
     
     console.log('✅ All routes loaded successfully');
   } catch (error) {

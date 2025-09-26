@@ -81,6 +81,7 @@ try {
   const purchaseOrdersRoutes = require('./routes/purchaseOrders');
   const notificationsRoutes = require('./routes/notifications');
   const importExportRoutes = require('./routes/import-export');
+  const internalOrdersRoutes = require('./routes/internalOrders');
   
   app.use('/api/auth', authRoutes);
   app.use('/api/items', itemsRoutes);
@@ -91,6 +92,7 @@ try {
   app.use('/api/purchase-orders', purchaseOrdersRoutes);
   app.use('/api/notifications', notificationsRoutes);
   app.use('/api/import-export', importExportRoutes);
+  app.use('/api/internal-orders', internalOrdersRoutes);
   
   console.log('✅ Routes loaded');
 } catch (error) {
